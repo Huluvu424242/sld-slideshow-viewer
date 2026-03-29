@@ -116,3 +116,12 @@ Die Anwendung zeigt im Kopfbereich nicht nur einen kurzen Beschreibungstext, son
 - docs/roadmap.md
 
 Dadurch ist der Viewer nicht nur ein Abspielgerüst, sondern zugleich ein nachvollziehbarer Einstiegspunkt in das Gesamtprojekt.
+
+
+## Weitere Dokumentation
+
+Zusätzlich zur Architektur-, Manifest- und Roadmap-Dokumentation enthält das Projekt nun auch eine Autorenanleitung:
+
+- `docs/createslideshow.md`
+
+Darin wird beschrieben, wie eine Slideshow aufgebaut ist, welche Dateiformate zulässig sind und wie typische Beispiele aussehen.
