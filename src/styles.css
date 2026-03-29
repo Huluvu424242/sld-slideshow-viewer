@@ -247,3 +247,15 @@ input[type="url"] { width: 100%; }
     min-height: auto;
   }
 }
+
+
+.hint-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: rgba(230, 235, 240, 0.82);
+}
+
+.cors-hint {
+  max-width: 52rem;
+}

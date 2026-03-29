@@ -86,3 +86,16 @@ Die Hauptnavigation verwendet jetzt freie Inline-SVG-Icons statt Emojis. Dadurch
 Wenn eine Audiodatei nicht geladen werden kann, etwa wegen einer fehlenden Datei oder eines Netzwerkfehlers, spricht der Viewer automatisch den Satz `Die Audio Datei konnte nicht geladen werden.`
 
 Der automatische Präsentationsmodus läuft danach weiter und springt wie gewohnt zur nächsten Folie.
+
+
+## CORS beim Remote-Laden
+
+Beim Laden einer Slideshow über eine Remote-URL gelten die normalen Browser-CORS-Regeln.
+
+Das bedeutet praktisch:
+
+- Remote-Laden funktioniert zuverlässig, wenn die Dateien vom gleichen Host bereitgestellt werden.
+- Es funktioniert auch, wenn der entfernte Server passende CORS-Header setzt.
+- Ohne passende Freigabe blockiert der Browser den Zugriff, auch wenn die URL technisch erreichbar ist.
+
+Darum sollte die Oberfläche einen Hinweis anzeigen, dass Remote-Laden im Browser oft nur vom gleichen Host oder aus lokal freigegebenen Quellen möglich ist.
