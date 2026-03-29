@@ -46,6 +46,23 @@ http://localhost:8080
 
 Ein einfacher GitHub-Actions-Workflow ist enthalten.
 
+## URL-Parameter
+
+Wird die Anwendung mit `?url=...` aufgerufen, wird diese URL automatisch zum Laden der Slideshow verwendet.
+
+Beispiele:
+
+```text
+https://<deine-pages-url>/index.html?url=https://example.org/slides/slides.json
+```
+
+```text
+https://<deine-pages-url>/index.html?url=https://example.org/bundles/demo.zip
+```
+
+Der Wert darf also entweder direkt auf eine `slides.json` oder auf ein ZIP-Archiv zeigen.
+
+
 ## Dokumentation
 
 - `docs/architecture.md`

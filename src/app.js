@@ -48,6 +48,7 @@ const audioController = new AudioController({
 
 bindEvents();
 refreshUi();
+await initializeFromQueryParameters();
 
 function bindEvents() {
   elements.pickDirectoryBtn.addEventListener('click', async () => {
@@ -121,6 +122,23 @@ function bindEvents() {
       event.preventDefault();
       await playCurrentSlide();
     }
+  });
+}
+
+
+async function initializeFromQueryParameters() {
+  const params = new URLSearchParams(window.location.search);
+  const remoteUrl = params.get('url')?.trim();
+
+  if (!remoteUrl) {
+    return;
+  }
+
+  elements.remoteUrlInput.value = remoteUrl;
+
+  await withErrorHandling(async () => {
+    const deck = await loadDeckFromRemote(remoteUrl);
+    await setDeck(deck);
   });
 }
 
