@@ -99,3 +99,20 @@ Das bedeutet praktisch:
 - Ohne passende Freigabe blockiert der Browser den Zugriff, auch wenn die URL technisch erreichbar ist.
 
 Darum sollte die Oberfläche einen Hinweis anzeigen, dass Remote-Laden im Browser oft nur vom gleichen Host oder aus lokal freigegebenen Quellen möglich ist.
+
+
+## Quellen im UI
+
+Die Anwendung zeigt im Kopfbereich nicht nur einen kurzen Beschreibungstext, sondern zusätzlich direkte Links auf die bisherigen Projektquellen sowie auf die lokale Dokumentation:
+
+- honey-slideshow
+- foile-pile
+- slidecast-angularjs.example
+- eclipse-slideshow
+- liona-slideshow
+- README
+- docs/architecture.md
+- docs/manifest.md
+- docs/roadmap.md
+
+Dadurch ist der Viewer nicht nur ein Abspielgerüst, sondern zugleich ein nachvollziehbarer Einstiegspunkt in das Gesamtprojekt.

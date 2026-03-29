@@ -259,3 +259,30 @@ input[type="url"] { width: 100%; }
 .cors-hint {
   max-width: 52rem;
 }
+
+
+.project-intro {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.project-intro p {
+  margin: 0;
+}
+
+.project-links {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(230, 235, 240, 0.9);
+}
+
+.project-links a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.project-links a:hover,
+.project-links a:focus-visible {
+  color: #ffffff;
+}
