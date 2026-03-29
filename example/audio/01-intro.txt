@@ -1,0 +1,1 @@
+Willkommen zur Beispiel Slideshow. Diese erste Folie wird direkt über die Browser Text to Speech Funktion gesprochen.
