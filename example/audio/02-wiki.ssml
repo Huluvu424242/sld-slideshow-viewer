@@ -1,0 +1,5 @@
+<speak>
+  <p>Dies ist eine Wiki Folie.</p>
+  <break time="400ms"/>
+  <p>Das Grundgerüst entfernt die SSML Tags aktuell noch und spricht den reinen Text.</p>
+</speak>

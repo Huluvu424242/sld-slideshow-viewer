@@ -1,0 +1,29 @@
+{
+  "title": "Beispiel Slideshow",
+  "slides": [
+    {
+      "id": "intro",
+      "title": "Willkommen",
+      "content": "slides/01-intro.md",
+      "format": "md",
+      "audio": {
+        "type": "txt",
+        "src": "audio/01-intro.txt",
+        "lang": "de-DE",
+        "rate": 1.0,
+        "pitch": 1.0
+      }
+    },
+    {
+      "id": "wiki",
+      "title": "Wiki-Folie",
+      "content": "slides/02-wiki.wm",
+      "format": "wm",
+      "audio": {
+        "type": "ssml",
+        "src": "audio/02-wiki.ssml",
+        "lang": "de-DE"
+      }
+    }
+  ]
+}
