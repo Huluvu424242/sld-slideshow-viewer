@@ -71,6 +71,45 @@ button {
 button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 
+.icon-btn {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(35, 42, 52, 0.98), rgba(24, 30, 37, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.icon-btn--play {
+  background: linear-gradient(180deg, rgba(53, 94, 127, 0.96), rgba(28, 58, 84, 0.98));
+}
+
+.icon-btn .icon {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-btn--play .icon circle {
+  fill: rgba(108, 192, 255, 0.16);
+}
+
+.icon-btn--play .icon path:last-child {
+  fill: currentColor;
+  stroke: none;
+}
+
+.toolbar-group--primary {
+  gap: 10px;
+}
+
 input[type="url"],
 input[type="number"] {
   padding: 10px 12px;
@@ -207,4 +246,43 @@ input[type="url"] { width: 100%; }
     padding: 28px;
     min-height: auto;
   }
+}
+
+
+.hint-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: rgba(230, 235, 240, 0.82);
+}
+
+.cors-hint {
+  max-width: 52rem;
+}
+
+
+.project-intro {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.project-intro p {
+  margin: 0;
+}
+
+.project-links {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: rgba(230, 235, 240, 0.9);
+}
+
+.project-links a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.project-links a:hover,
+.project-links a:focus-visible {
+  color: #ffffff;
 }
