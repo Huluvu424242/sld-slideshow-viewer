@@ -1,7 +1,8 @@
 export class AudioController {
-  constructor({ onStatusChange, onEnded }) {
+  constructor({ onStatusChange, onEnded, fallbackMessage = 'Die Audio Datei konnte nicht geladen werden.' }) {
     this.onStatusChange = onStatusChange;
     this.onEnded = onEnded;
+    this.fallbackMessage = fallbackMessage;
     this.audio = null;
     this.synthesis = window.speechSynthesis;
     this.currentMode = 'stopped';
@@ -20,19 +21,26 @@ export class AudioController {
     const audioType = (slide.audio.type || '').toLowerCase();
     this.currentSlideKey = `${slide.id || ''}:${slide.audio.src || audioType}`;
 
-    if (audioType === 'mp3') {
-      const resolvedUrl = await assetLoader.resolvePlayableUrl(slide.audio.src);
-      await this.playAudioElement(resolvedUrl);
-      return;
-    }
+    try {
+      if (audioType === 'mp3') {
+        const resolvedUrl = await assetLoader.resolvePlayableUrl(slide.audio.src);
+        await this.playAudioElement(resolvedUrl);
+        return;
+      }
 
-    if (audioType === 'txt' || audioType === 'ssml') {
-      const text = await assetLoader.loadText(slide.audio.src);
-      this.playSpeech(text, slide.audio, audioType === 'ssml');
-      return;
-    }
+      if (audioType === 'txt' || audioType === 'ssml') {
+        const text = await assetLoader.loadText(slide.audio.src);
+        this.playSpeech(text, slide.audio, audioType === 'ssml');
+        return;
+      }
 
-    this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType}`);
+      this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType}`);
+      await this.playFallbackMessage(slide.audio);
+    } catch (error) {
+      console.warn('Audio konnte nicht geladen werden. Fallback wird gesprochen.', error);
+      this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
+      await this.playFallbackMessage(slide.audio);
+    }
   }
 
   async pause() {
@@ -81,6 +89,12 @@ export class AudioController {
       this.updateStatus('Beendet');
       this.onEnded?.();
     }, { once: true });
+    audio.addEventListener('error', async () => {
+      console.warn('MP3 konnte nicht abgespielt werden. Fallback wird gesprochen.', url);
+      this.audio = null;
+      this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
+      await this.playFallbackMessage();
+    }, { once: true });
     audio.addEventListener('pause', () => {
       if (!audio.ended) {
         this.updateStatus('Pausiert');
@@ -92,7 +106,11 @@ export class AudioController {
     await audio.play();
   }
 
-  playSpeech(text, audioConfig, isSsml) {
+  async playFallbackMessage(audioConfig = {}) {
+    this.playSpeech(this.fallbackMessage, audioConfig, false);
+  }
+
+  playSpeech(text, audioConfig = {}, isSsml) {
     const utterance = new SpeechSynthesisUtterance();
     utterance.text = isSsml ? ssmlToSpeechText(text) : text;
     utterance.lang = audioConfig.lang || 'de-DE';
@@ -116,6 +134,7 @@ export class AudioController {
     };
     utterance.onerror = (event) => {
       this.updateStatus(`TTS-Fehler: ${event.error || 'unbekannt'}`);
+      this.onEnded?.();
     };
 
     this.synthesis.speak(utterance);

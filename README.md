@@ -74,3 +74,15 @@ Der Wert darf also entweder direkt auf eine `slides.json` oder auf ein ZIP-Archi
 Unter `example/` liegt eine kleine Beispieldatenbasis.
 
 Für Remote-Tests kann die Datei `example/slides.json` direkt referenziert werden, sobald das Repo auf GitHub Pages liegt.
+
+
+## UI-Hinweis
+
+Die Hauptnavigation verwendet jetzt freie Inline-SVG-Icons statt Emojis. Dadurch sind Play und Nächste Folie klarer unterscheidbar und die Darstellung bleibt auf GitHub Pages ohne zusätzliche Bibliothek stabil.
+
+
+## Verhalten bei Audiofehlern
+
+Wenn eine Audiodatei nicht geladen werden kann, etwa wegen einer fehlenden Datei oder eines Netzwerkfehlers, spricht der Viewer automatisch den Satz `Die Audio Datei konnte nicht geladen werden.`
+
+Der automatische Präsentationsmodus läuft danach weiter und springt wie gewohnt zur nächsten Folie.

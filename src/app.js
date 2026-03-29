@@ -30,6 +30,7 @@ const elements = {
 };
 
 const audioController = new AudioController({
+  fallbackMessage: 'Die Audio Datei konnte nicht geladen werden.',
   onStatusChange(status) {
     elements.audioStatus.textContent = status;
   },
