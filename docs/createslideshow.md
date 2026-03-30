@@ -15,7 +15,7 @@ Eine Slideshow besteht aus:
 - optionalen **Audio-Dateien** (`.txt`, `.ssml`, `.mp3`)
 - oder alternativ einem **`showtime`-Attribut** für Folien ohne Audio
 
-Alle Dateien können in einem Verzeichnis oder in einem ZIP-Archiv liegen.
+Alle Dateien können in einem Verzeichnis oder in einem SLD- oder ZIP-Archiv liegen.
 
 ---
 
@@ -53,6 +53,11 @@ Das Manifest beschreibt die Reihenfolge der Folien und deren Inhalte.
       }
     },
     {
+      "id": "slide4",
+      "content": "slide4.md",
+      "showtime": 10
+    },
+    {
       "id": "slide2",
       "content": "slide2.md",
       "audio": {
@@ -67,11 +72,6 @@ Das Manifest beschreibt die Reihenfolge der Folien und deren Inhalte.
         "type": "mp3",
         "src": "audio3.mp3"
       }
-    },
-    {
-      "id": "slide4",
-      "content": "slide4.md",
-      "showtime": 10
     }
   ]
 }
@@ -206,7 +206,7 @@ Die Präsentation läuft danach normal weiter.
 ### Lokal
 
 - Verzeichnis auswählen
-- ZIP-Datei laden
+- SLD- oder ZIP-Datei laden
 
 ### Remote
 
@@ -275,4 +275,11 @@ Eine Slideshow ist bewusst simpel gehalten:
 - keine komplexe Build-Pipeline
 - vollständig statisch nutzbar
 
-Das ermöglicht schnelle Erstellung und einfache Verteilung, zum Beispiel als ZIP oder über GitHub Pages.
+Das ermöglicht schnelle Erstellung und einfache Verteilung, zum Beispiel als SLD, ZIP oder über GitHub Pages.
+
+
+## Dateiendung `.sld`
+
+Für Slideshows wird bevorzugt die Dateiendung `.sld` verwendet. Technisch kann eine `.sld`-Datei wie ein ZIP-Container aufgebaut sein.
+
+Der Viewer behandelt deshalb `.sld` und `.zip` beim lokalen Öffnen gleich. Standardmäßig wird jedoch `.sld` als das bevorzugte Slideshow-Dokumentformat dargestellt.

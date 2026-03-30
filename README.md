@@ -7,9 +7,9 @@ Statisches Browser-Grundgerüst für dein Slideshow-Projekt.
 Die Anwendung lädt eine Slideshow aus:
 
 - lokalem Verzeichnis
-- lokalem ZIP-Archiv
+- lokalem SLD- oder ZIP-Archiv
 - Remote-URL zu `slides.json`
-- Remote-URL zu einem ZIP-Archiv
+- Remote-URL zu einem SLD- oder ZIP-Archiv
 
 Unterstützte Folienformate:
 
@@ -58,9 +58,10 @@ https://<deine-pages-url>/index.html?url=https://example.org/slides/slides.json
 
 ```text
 https://<deine-pages-url>/index.html?url=https://example.org/bundles/demo.zip
+https://<deine-pages-url>/index.html?url=https://example.org/bundles/demo.sld
 ```
 
-Der Wert darf also entweder direkt auf eine `slides.json` oder auf ein ZIP-Archiv zeigen.
+Der Wert darf also entweder direkt auf eine `slides.json` oder auf ein SLD- oder ZIP-Archiv zeigen.
 
 
 ## Dokumentation
@@ -127,17 +128,8 @@ Zusätzlich zur Architektur-, Manifest- und Roadmap-Dokumentation enthält das P
 Darin wird beschrieben, wie eine Slideshow aufgebaut ist, welche Dateiformate zulässig sind und wie typische Beispiele aussehen.
 
 
-## Folien ohne Audio
+## Dateiendung `.sld`
 
-Folien können jetzt auch ohne `audio`-Block definiert werden. In diesem Fall kann stattdessen `showtime` gesetzt werden.
+Für Slideshows wird bevorzugt die Dateiendung `.sld` verwendet. Technisch kann eine `.sld`-Datei wie ein ZIP-Container aufgebaut sein.
 
-Beispiel:
-
-```json
-{
-  "content": "slide-ohne-audio.md",
-  "showtime": 8
-}
-```
-
-Im automatischen Modus bleibt die Folie dann 8 Sekunden sichtbar und die Wiedergabe läuft anschließend normal weiter.
+Der Viewer behandelt deshalb `.sld` und `.zip` beim lokalen Öffnen gleich. Standardmäßig wird jedoch `.sld` als das bevorzugte Slideshow-Dokumentformat dargestellt.

@@ -1,27 +1,27 @@
 <!doctype html>
 <html lang="de">
-<head>
+  <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Slideshow Viewer</title>
     <link rel="stylesheet" href="./src/styles.css">
-</head>
-<body>
-<div class="app-shell">
-    <aside class="sidebar">
-        <h1>Slideshow Viewer</h1>
-        <div class="project-intro">
-            <p class="project-links">
-                Quellen:
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+      <h1>Slideshow Viewer</h1>
+      <div class="project-intro">
+        <p class="project-links">
+          Quellen:
                 <a href="https://github.com/Huluvu424242/slideshow-viewer" target="_blank" rel="noreferrer">
                     slideshow-viewer
                 </a>,
                 <a href="https://huluvu424242.github.io/foile-pile/" target="_blank" rel="noreferrer">
                     Präsentationen (Sammlung)
                 </a>,
-            </p>
-            <p class="project-links">
-                Dokumentation:
+        </p>
+        <p class="project-links">
+          Dokumentation:
                 <a href="https://github.com/Huluvu424242/slideshow-viewer/tree/master/README.md" target="_blank"
                    rel="noreferrer">README</a>,
                 <a href="https://github.com/Huluvu424242/slideshow-viewer/tree/master/docs/createslideshow.md"
@@ -32,108 +32,101 @@
                    rel="noreferrer">Manifest</a>,
                 <a href="https://github.com/Huluvu424242/slideshow-viewer/tree/master/docs/roadmap.md" target="_blank"
                    rel="noreferrer">Roadmap</a>,
-            </p>
-        </div>
         </p>
+      </div>
+    </p>
 
         <section class="panel">
-            <h2>Quelle laden</h2>
-            <div class="stack gap-s">
-                <button id="pick-directory-btn" type="button">Lokales Verzeichnis öffnen</button>
-                <label class="file-label" for="remote-url-input">
-                    <span>Lokales ZIP öffnen</span>
-                    <input id="zip-input" type="file" accept=".zip,application/zip">
-                </label>
-                <input id="remote-url-input" type="url" placeholder="https://example.org/slides.json oder .zip">
-                <button id="load-remote-btn" type="button">Remote laden</button>
-            </div>
-            <p class="muted small">Verzeichnisladen nutzt die File System Access API. ZIP und Remote funktionieren ohne
-                Serverlogik.</p>
+          <h2>Quelle laden</h2>
+          <div class="stack gap-s">
+            <button id="pick-directory-btn" type="button">Lokales Verzeichnis öffnen</button>
+            <label class="file-label" for="remote-url-input">
+              <span>SLD/ZIP-Datei laden</span>
+              <input id="zip-input" type="file" accept=".sld,.zip,application/zip">
+            </label>
+            <input id="remote-url-input" type="url" placeholder="https://example.org/slides.json oder .zip oder .sld">
+            <button id="load-remote-btn" type="button">Remote laden</button>
+          </div>
+          <p class="muted small">Verzeichnisladen nutzt die File System Access API. ZIP und Remote funktionieren ohne Serverlogik.</p>
         </section>
 
         <section class="panel">
-            <h2>Status</h2>
-            <dl class="meta-grid">
-                <dt>Präsentation</dt>
-                <dd id="deck-title">–</dd>
-                <dt>Folie</dt>
-                <dd id="slide-counter">0 / 0</dd>
-                <dt>Quelle</dt>
-                <dd id="source-kind">–</dd>
-                <dt>Audio</dt>
-                <dd id="audio-status">Gestoppt</dd>
-            </dl>
-            <div id="error-box" class="error-box hidden" role="alert"></div>
+          <h2>Status</h2>
+          <dl class="meta-grid">
+            <dt>Präsentation</dt><dd id="deck-title">–</dd>
+            <dt>Folie</dt><dd id="slide-counter">0 / 0</dd>
+            <dt>Quelle</dt><dd id="source-kind">–</dd>
+            <dt>Audio</dt><dd id="audio-status">Gestoppt</dd>
+          </dl>
+          <div id="error-box" class="error-box hidden" role="alert"></div>
         </section>
 
         <section class="panel">
-            <h2>Folien</h2>
-            <ol id="slide-list" class="slide-list"></ol>
+          <h2>Folien</h2>
+          <ol id="slide-list" class="slide-list"></ol>
         </section>
-    </aside>
+      </aside>
 
-    <main class="stage">
+      <main class="stage">
         <header class="toolbar">
-            <div class="toolbar-group toolbar-group--primary">
-                <button id="first-btn" class="icon-btn" type="button" title="Erste Folie" aria-label="Erste Folie">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M18 6v12M14 7l-6 5 6 5V7z"/>
-                    </svg>
-                </button>
-                <button id="prev-btn" class="icon-btn" type="button" title="Vorherige Folie"
-                        aria-label="Vorherige Folie">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M15.5 7l-7 5 7 5V7z"/>
-                    </svg>
-                </button>
-                <button id="play-btn" class="icon-btn icon-btn--play" type="button" title="Abspielen"
-                        aria-label="Abspielen">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="12" cy="12" r="9"/>
-                        <path d="M10 8.75l5.5 3.25L10 15.25v-6.5z"/>
-                    </svg>
-                </button>
-                <button id="pause-btn" class="icon-btn" type="button" title="Pause" aria-label="Pause">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M9 7v10M15 7v10"/>
-                    </svg>
-                </button>
-                <button id="stop-btn" class="icon-btn" type="button" title="Stop" aria-label="Stop">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <rect x="8" y="8" width="8" height="8" rx="1"/>
-                    </svg>
-                </button>
-                <button id="next-btn" class="icon-btn" type="button" title="Nächste Folie" aria-label="Nächste Folie">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M8.5 7l7 5-7 5V7z"/>
-                    </svg>
-                </button>
-                <button id="last-btn" class="icon-btn" type="button" title="Letzte Folie" aria-label="Letzte Folie">
-                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M6 6v12M10 7l6 5-6 5V7z"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="toolbar-group">
-                <label for="goto-input">Gehe zu</label>
-                <input id="goto-input" type="number" min="1" step="1" value="1">
-                <button id="goto-btn" type="button">Los</button>
-                <label class="checkbox-inline">
-                    <input id="autoplay-next-checkbox" type="checkbox" checked>
-                    <span>Nächste Folie automatisch</span>
-                </label>
-            </div>
+          <div class="toolbar-group toolbar-group--primary">
+            <button id="first-btn" class="icon-btn" type="button" title="Erste Folie" aria-label="Erste Folie">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 6v12M14 7l-6 5 6 5V7z" />
+              </svg>
+            </button>
+            <button id="prev-btn" class="icon-btn" type="button" title="Vorherige Folie" aria-label="Vorherige Folie">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15.5 7l-7 5 7 5V7z" />
+              </svg>
+            </button>
+            <button id="play-btn" class="icon-btn icon-btn--play" type="button" title="Abspielen" aria-label="Abspielen">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M10 8.75l5.5 3.25L10 15.25v-6.5z" />
+              </svg>
+            </button>
+            <button id="pause-btn" class="icon-btn" type="button" title="Pause" aria-label="Pause">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 7v10M15 7v10" />
+              </svg>
+            </button>
+            <button id="stop-btn" class="icon-btn" type="button" title="Stop" aria-label="Stop">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="8" y="8" width="8" height="8" rx="1" />
+              </svg>
+            </button>
+            <button id="next-btn" class="icon-btn" type="button" title="Nächste Folie" aria-label="Nächste Folie">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8.5 7l7 5-7 5V7z" />
+              </svg>
+            </button>
+            <button id="last-btn" class="icon-btn" type="button" title="Letzte Folie" aria-label="Letzte Folie">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6v12M10 7l6 5-6 5V7z" />
+              </svg>
+            </button>
+          </div>
+          <div class="toolbar-group">
+            <label for="goto-input">Gehe zu</label>
+            <input id="goto-input" type="number" min="1" step="1" value="1">
+            <button id="goto-btn" type="button">Los</button>
+            <label class="checkbox-inline">
+              <input id="autoplay-next-checkbox" type="checkbox" checked>
+              <span>Nächste Folie automatisch</span>
+            </label>
+          </div>
         </header>
 
         <article id="slide-stage" class="slide-stage">
-            <div class="placeholder">
-                <h2>Noch keine Slideshow geladen</h2>
-                <p>Öffne ein Verzeichnis, ein ZIP oder eine Remote-Quelle mit <code>slides.json</code>.</p>
-            </div>
+          <div class="placeholder">
+            <h2>Noch keine Slideshow geladen</h2>
+            <p>Öffne ein Verzeichnis, ein SLD, ein ZIP oder eine Remote-Quelle mit <code>slides.json</code>.</p>
+          </div>
         </article>
-    </main>
-</div>
+      </main>
+    </div>
 
-<script type="module" src="./src/app.js"></script>
-</body>
+    <script type="module" src="./src/app.js"></script>
+  </body>
 </html>
