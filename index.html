@@ -41,10 +41,10 @@
           <div class="stack gap-s">
             <button id="pick-directory-btn" type="button">Lokales Verzeichnis öffnen</button>
             <label class="file-label" for="remote-url-input">
-              <span>Lokales ZIP öffnen</span>
-              <input id="zip-input" type="file" accept=".zip,application/zip">
+              <span>SLD/ZIP-Datei laden</span>
+              <input id="zip-input" type="file" accept=".sld,.zip,application/zip">
             </label>
-            <input id="remote-url-input" type="url" placeholder="https://example.org/slides.json oder .zip">
+            <input id="remote-url-input" type="url" placeholder="https://example.org/slides.json oder .zip oder .sld">
             <button id="load-remote-btn" type="button">Remote laden</button>
           </div>
           <p class="muted small">Verzeichnisladen nutzt die File System Access API. ZIP und Remote funktionieren ohne Serverlogik.</p>
@@ -121,7 +121,7 @@
         <article id="slide-stage" class="slide-stage">
           <div class="placeholder">
             <h2>Noch keine Slideshow geladen</h2>
-            <p>Öffne ein Verzeichnis, ein ZIP oder eine Remote-Quelle mit <code>slides.json</code>.</p>
+            <p>Öffne ein Verzeichnis, ein SLD, ein ZIP oder eine Remote-Quelle mit <code>slides.json</code>.</p>
           </div>
         </article>
       </main>
