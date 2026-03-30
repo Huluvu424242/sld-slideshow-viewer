@@ -15,6 +15,11 @@
       }
     },
     {
+      "id": "silent-slide",
+      "content": "slide4.md",
+      "showtime": 6
+    },
+    {
       "id": "wiki",
       "title": "Wiki-Folie",
       "content": "slides/02-wiki.wm",

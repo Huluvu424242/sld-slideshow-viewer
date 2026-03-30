@@ -4,6 +4,7 @@ import { AudioController } from './audio.js';
 import { loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote } from './loaders.js';
 
 const state = createInitialState();
+let slideAdvanceTimer = null;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -102,9 +103,11 @@ function bindEvents() {
     });
   });
   elements.pauseBtn.addEventListener('click', async () => {
+    clearSlideAdvanceTimer();
     await audioController.pause();
   });
   elements.stopBtn.addEventListener('click', async () => {
+    clearSlideAdvanceTimer();
     await audioController.stop();
   });
   elements.autoplayNextCheckbox.addEventListener('change', () => {
@@ -126,6 +129,55 @@ function bindEvents() {
   });
 }
 
+function clearSlideAdvanceTimer() {
+  if (slideAdvanceTimer) {
+    window.clearTimeout(slideAdvanceTimer);
+    slideAdvanceTimer = null;
+  }
+}
+
+function getSlideShowtimeSeconds(slide) {
+  if (!slide || slide.audio) {
+    return null;
+  }
+
+  const value = Number(slide.showtime);
+  if (!Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+
+  return value;
+}
+
+function updateSlideAudioStatus(slide) {
+  const showtime = getSlideShowtimeSeconds(slide);
+  elements.audioStatus.textContent = showtime
+    ? `Kein Audio – Anzeige ${showtime} s`
+    : 'Kein Audio';
+}
+
+function scheduleAutoAdvanceForSilentSlide(slide) {
+  clearSlideAdvanceTimer();
+
+  const showtime = getSlideShowtimeSeconds(slide);
+  if (!showtime || !state.autoAdvance) {
+    updateSlideAudioStatus(slide);
+    return false;
+  }
+
+  updateSlideAudioStatus(slide);
+  slideAdvanceTimer = window.setTimeout(async () => {
+    slideAdvanceTimer = null;
+    if (!state.autoAdvance || !state.deck) {
+      return;
+    }
+    if (state.currentIndex < state.deck.slides.length - 1) {
+      await goToSlide(state.currentIndex + 1, { autoplay: true });
+    }
+  }, showtime * 1000);
+
+  return true;
+}
 
 async function initializeFromQueryParameters() {
   const params = new URLSearchParams(window.location.search);
@@ -144,6 +196,7 @@ async function initializeFromQueryParameters() {
 }
 
 async function setDeck(deck) {
+  clearSlideAdvanceTimer();
   state.deck = deck;
   state.sourceKind = deck.sourceKind;
   state.currentIndex = 0;
@@ -160,6 +213,7 @@ async function goToSlide(index, options = {}) {
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
+  clearSlideAdvanceTimer();
   state.currentIndex = index;
   await audioController.stop();
   refreshUi();
@@ -171,6 +225,7 @@ async function goToSlide(index, options = {}) {
 }
 
 async function renderCurrentSlide() {
+  clearSlideAdvanceTimer();
   const slide = state.deck?.slides[state.currentIndex];
   if (!slide) {
     elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
@@ -193,6 +248,10 @@ async function renderCurrentSlide() {
   `;
 
   await hydrateAsyncAssets();
+
+  if (!slide.audio) {
+    updateSlideAudioStatus(slide);
+  }
 }
 
 async function hydrateAsyncAssets() {
@@ -212,6 +271,11 @@ async function playCurrentSlide() {
     return;
   }
   await withErrorHandling(async () => {
+    if (!slide.audio) {
+      scheduleAutoAdvanceForSilentSlide(slide);
+      return;
+    }
+    clearSlideAdvanceTimer();
     await audioController.play(slide, state.deck.assetLoader);
   });
 }

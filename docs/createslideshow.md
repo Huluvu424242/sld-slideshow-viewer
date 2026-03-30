@@ -13,6 +13,7 @@ Eine Slideshow besteht aus:
 - einem **Manifest** (`slides.json`)
 - mehreren **Foliendateien** (`.md` oder `.wm`)
 - optionalen **Audio-Dateien** (`.txt`, `.ssml`, `.mp3`)
+- oder alternativ einem **`showtime`-Attribut** für Folien ohne Audio
 
 Alle Dateien können in einem Verzeichnis oder in einem ZIP-Archiv liegen.
 
@@ -66,6 +67,11 @@ Das Manifest beschreibt die Reihenfolge der Folien und deren Inhalte.
         "type": "mp3",
         "src": "audio3.mp3"
       }
+    },
+    {
+      "id": "slide4",
+      "content": "slide4.md",
+      "showtime": 10
     }
   ]
 }
@@ -108,6 +114,28 @@ Dies ist ein einfacher Text.
 ```
 
 ---
+
+## Folien ohne Audio
+
+Nicht jede Folie benötigt eine Audiodatei. In diesem Fall wird der komplette `audio`-Block in `slides.json` weggelassen und stattdessen `showtime` gesetzt.
+
+`showtime` definiert die Anzeigedauer der Folie in Sekunden.
+
+### Beispiel
+
+```json
+{
+  "id": "slide-ohne-audio",
+  "content": "slide-ohne-audio.md",
+  "showtime": 8
+}
+```
+
+Verhalten:
+
+- die Folie wird ohne Audio angezeigt
+- im automatischen Modus bleibt sie für die angegebene Zeit sichtbar
+- danach springt die Präsentation automatisch zur nächsten Folie
 
 ## Unterstützte Audioformate
 

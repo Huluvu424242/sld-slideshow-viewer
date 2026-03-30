@@ -125,3 +125,19 @@ Zusätzlich zur Architektur-, Manifest- und Roadmap-Dokumentation enthält das P
 - `docs/createslideshow.md`
 
 Darin wird beschrieben, wie eine Slideshow aufgebaut ist, welche Dateiformate zulässig sind und wie typische Beispiele aussehen.
+
+
+## Folien ohne Audio
+
+Folien können jetzt auch ohne `audio`-Block definiert werden. In diesem Fall kann stattdessen `showtime` gesetzt werden.
+
+Beispiel:
+
+```json
+{
+  "content": "slide-ohne-audio.md",
+  "showtime": 8
+}
+```
+
+Im automatischen Modus bleibt die Folie dann 8 Sekunden sichtbar und die Wiedergabe läuft anschließend normal weiter.

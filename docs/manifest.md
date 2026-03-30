@@ -53,3 +53,22 @@ Pfadangaben sind relativ zu:
 - dem Root des ZIP-Archivs
 - dem gewählten lokalen Verzeichnis
 - dem Verzeichnis, in dem `slides.json` liegt
+
+
+## Showtime für Folien ohne Audio
+
+Wenn eine Folie kein Audio besitzen soll, kann der `audio`-Block entfallen. Stattdessen kann ein Attribut `showtime` gesetzt werden.
+
+`showtime` gibt die Anzeigedauer der Folie in Sekunden an.
+
+### Beispiel
+
+```json
+{
+  "id": "slide-ohne-audio",
+  "content": "slide-ohne-audio.md",
+  "showtime": 8
+}
+```
+
+Im automatischen Präsentationsmodus bleibt die Folie dann 8 Sekunden sichtbar und es wird danach automatisch zur nächsten Folie gewechselt.
