@@ -101,6 +101,7 @@ async function buildDeck(manifest, assetLoader) {
     slides.push({
       ...slide,
       index,
+      showtime: normalizeShowtime(slide.showtime),
       contentPath,
       contentText,
       format: slide.format,
@@ -127,7 +128,22 @@ function validateManifest(manifest) {
     if (!slide.content) {
       throw new Error(`Folie ${index + 1} besitzt kein content-Feld.`);
     }
+
+    if (!slide.audio) {
+      const showtime = normalizeShowtime(slide.showtime);
+      if (!showtime) {
+        throw new Error(`Folie ${index + 1} besitzt weder audio noch ein gültiges showtime-Attribut.`);
+      }
+    }
   }
+}
+
+function normalizeShowtime(value) {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const normalized = Number(value);
+  return Number.isFinite(normalized) && normalized > 0 ? normalized : undefined;
 }
 
 async function readTextFromHandle(rootHandle, relativePath) {
@@ -153,21 +169,23 @@ function ensureDirectoryUrl(url) {
   return url.endsWith('/') ? url : `${url}/`;
 }
 
-function normalize(value) {
-  return value.replaceAll('\\', '/').replace(/^\.\//, '');
+function normalize(path) {
+  return String(path).replaceAll('\\', '/').replace(/^\.\//, '');
 }
 
-async function getObjectUrl(zip, relativePath, cache) {
-  const key = normalize(relativePath);
-  if (cache.has(key)) {
-    return cache.get(key);
+async function getObjectUrl(zip, relativePath, objectUrlCache) {
+  const normalized = normalize(relativePath);
+  if (objectUrlCache.has(normalized)) {
+    return objectUrlCache.get(normalized);
   }
-  const entry = zip.file(key);
+
+  const entry = zip.file(normalized);
   if (!entry) {
     throw new Error(`Datei im ZIP nicht gefunden: ${relativePath}`);
   }
+
   const blob = await entry.async('blob');
-  const url = URL.createObjectURL(blob);
-  cache.set(key, url);
-  return url;
+  const objectUrl = URL.createObjectURL(blob);
+  objectUrlCache.set(normalized, objectUrl);
+  return objectUrl;
 }

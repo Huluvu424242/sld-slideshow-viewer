@@ -24,6 +24,11 @@
         "src": "audio/02-wiki.ssml",
         "lang": "de-DE"
       }
+    },
+    {
+      "id": "silent-slide",
+      "content": "slide4.md",
+      "showtime": 6
     }
   ]
 }
