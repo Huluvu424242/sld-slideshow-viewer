@@ -181,9 +181,8 @@ async function getObjectUrl(zip, relativePath, objectUrlCache) {
 
   const entry = zip.file(normalized);
   if (!entry) {
-    throw new Error(`Datei im ZIP nicht gefunden: ${relativePath}`);
+    throw new Error(`Datei im SLD/ZIP nicht gefunden: ${relativePath}`);
   }
-
   const blob = await entry.async('blob');
   const objectUrl = URL.createObjectURL(blob);
   objectUrlCache.set(normalized, objectUrl);

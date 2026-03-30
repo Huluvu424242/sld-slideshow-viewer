@@ -50,9 +50,15 @@
 
 Pfadangaben sind relativ zu:
 
-- dem Root des ZIP-Archivs
+- dem Root des SLD- oder ZIP-Archivs
 - dem gewählten lokalen Verzeichnis
 - dem Verzeichnis, in dem `slides.json` liegt
+
+## Dateiendung `.sld`
+
+Für Slideshows wird bevorzugt die Dateiendung `.sld` verwendet. Technisch kann eine `.sld`-Datei wie ein ZIP-Container aufgebaut sein.
+
+Der Viewer behandelt deshalb `.sld` und `.zip` beim lokalen Öffnen gleich. Standardmäßig wird jedoch `.sld` als das bevorzugte Slideshow-Dokumentformat dargestellt.
 
 
 ## Showtime für Folien ohne Audio
