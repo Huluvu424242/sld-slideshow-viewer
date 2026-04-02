@@ -12,7 +12,6 @@
       "content": "slides/01-intro.md",
       "format": "md",
       "audio": {
-        "type": "txt",
         "src": "audio/01-intro.txt",
         "lang": "de-DE"
       }
@@ -38,13 +37,15 @@
 
 ### Audio
 
-- `type`: `txt`, `ssml` oder `mp3`
+- `type`: optional; `txt`, `ssml` oder `mp3` (überschreibt die automatische Erkennung)
 - `src`: Pfad zur Audio- bzw. Textquelle
 - `lang`: optional, relevant für TTS
 - `voice`: optionaler Browser-Voice-Name
 - `rate`: optional
 - `pitch`: optional
 - `volume`: optional
+
+Wenn `type` fehlt, wird der Typ automatisch über die Dateiendung von `src` erkannt (`.txt`, `.ssml`, `.mp3`).
 
 ## Pfadauflösung
 
