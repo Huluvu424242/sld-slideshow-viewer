@@ -7,7 +7,6 @@
       "content": "slides/01-intro.md",
       "format": "md",
       "audio": {
-        "type": "txt",
         "src": "audio/01-intro.txt",
         "lang": "de-DE",
         "rate": 1.0,

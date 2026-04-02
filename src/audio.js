@@ -18,7 +18,7 @@ export class AudioController {
       return;
     }
 
-    const audioType = (slide.audio.type || '').toLowerCase();
+    const audioType = inferAudioType(slide.audio);
     this.currentSlideKey = `${slide.id || ''}:${slide.audio.src || audioType}`;
 
     try {
@@ -34,7 +34,7 @@ export class AudioController {
         return;
       }
 
-      this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType}`);
+      this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType || 'unbekannt'}`);
       await this.playFallbackMessage(slide.audio);
     } catch (error) {
       console.warn('Audio konnte nicht geladen werden. Fallback wird gesprochen.', error);
@@ -144,6 +144,31 @@ export class AudioController {
     this.currentMode = status;
     this.onStatusChange?.(status);
   }
+}
+
+function inferAudioType(audioConfig = {}) {
+  const explicitType = String(audioConfig.type || '').trim().toLowerCase();
+  if (explicitType) {
+    return explicitType;
+  }
+
+  const src = String(audioConfig.src || '').trim();
+  if (!src) {
+    return '';
+  }
+
+  const extension = src
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+
+  if (extension === 'mp3' || extension === 'txt' || extension === 'ssml') {
+    return extension;
+  }
+
+  return '';
 }
 
 function ssmlToSpeechText(ssml) {
