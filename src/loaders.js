@@ -100,6 +100,7 @@ async function buildDeck(manifest, assetLoader) {
     const contentText = await assetLoader.loadText(contentPath);
     slides.push({
       ...slide,
+      audio: normalizeAudio(slide.audio),
       index,
       showtime: normalizeShowtime(slide.showtime),
       contentPath,
@@ -136,6 +137,20 @@ function validateManifest(manifest) {
       }
     }
   }
+}
+
+
+function normalizeAudio(value) {
+  if (typeof value === 'string') {
+    const src = value.trim();
+    return src ? { src } : undefined;
+  }
+
+  if (value && typeof value === 'object') {
+    return value;
+  }
+
+  return undefined;
 }
 
 function normalizeShowtime(value) {

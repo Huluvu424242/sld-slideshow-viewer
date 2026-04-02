@@ -33,19 +33,26 @@
 - `title`: optionaler Anzeigename
 - `content`: Pfad zur Folienquelle
 - `format`: optional `md` oder `wm`
-- `audio`: optionales Audioobjekt
+- `audio`: optional als Audioobjekt **oder** als Kurzschreibweise (String mit Dateipfad)
 
 ### Audio
 
-- `type`: optional; `txt`, `ssml` oder `mp3` (überschreibt die automatische Erkennung)
-- `src`: Pfad zur Audio- bzw. Textquelle
-- `lang`: optional, relevant für TTS
-- `voice`: optionaler Browser-Voice-Name
-- `rate`: optional
-- `pitch`: optional
-- `volume`: optional
+`audio` kann in zwei Formen angegeben werden:
 
-Wenn `type` fehlt, wird der Typ automatisch über die Dateiendung von `src` erkannt (`.txt`, `.ssml`, `.mp3`).
+1. **Objektform**
+   - `type`: optional; `txt`, `ssml` oder `mp3` (überschreibt die automatische Erkennung)
+   - `src`: Pfad zur Audio- bzw. Textquelle
+   - `lang`: optional, relevant für TTS
+   - `voice`: optionaler Browser-Voice-Name
+   - `rate`: optional
+   - `pitch`: optional
+   - `volume`: optional
+
+2. **Kurzform**
+   - `audio`: String mit Dateipfad, z. B. `"audio/01-intro.txt"`
+
+Wenn `type` fehlt, wird der Typ automatisch über die Dateiendung der Quelle erkannt (`.txt`, `.ssml`, `.mp3`) – sowohl in Objektform als auch in Kurzform.
+
 
 ## Pfadauflösung
 
