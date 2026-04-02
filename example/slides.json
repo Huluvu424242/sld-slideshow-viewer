@@ -6,12 +6,7 @@
       "title": "Willkommen",
       "content": "slides/01-intro.md",
       "format": "md",
-      "audio": {
-        "src": "audio/01-intro.txt",
-        "lang": "de-DE",
-        "rate": 1.0,
-        "pitch": 1.0
-      }
+      "audio": "audio/01-intro.txt"
     },
     {
       "id": "silent-slide",
