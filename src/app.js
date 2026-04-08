@@ -15,6 +15,11 @@ const elements = {
   slideList: document.querySelector('#slide-list'),
   slideStage: document.querySelector('#slide-stage'),
   gotoInput: document.querySelector('#goto-input'),
+  transcriptToggleBtn: document.querySelector('#transcript-toggle-btn'),
+  transcriptPanel: document.querySelector('#transcript-panel'),
+  transcriptHint: document.querySelector('#transcript-hint'),
+  transcriptText: document.querySelector('#transcript-text'),
+  transcriptAudioPlayer: document.querySelector('#transcript-audio-player'),
   autoplayNextCheckbox: document.querySelector('#autoplay-next-checkbox'),
   remoteUrlInput: document.querySelector('#remote-url-input'),
   zipInput: document.querySelector('#zip-input'),
@@ -113,6 +118,9 @@ function bindEvents() {
   elements.autoplayNextCheckbox.addEventListener('change', () => {
     state.autoAdvance = elements.autoplayNextCheckbox.checked;
   });
+  elements.transcriptToggleBtn.addEventListener('click', async () => {
+    await toggleTranscriptPanel();
+  });
 
   document.addEventListener('keydown', async (event) => {
     if (event.target instanceof HTMLInputElement) {
@@ -201,6 +209,7 @@ async function setDeck(deck) {
   state.sourceKind = deck.sourceKind;
   state.currentIndex = 0;
   await audioController.stop();
+  hideTranscriptPanel();
   refreshUi();
   renderSlideList();
   await renderCurrentSlide();
@@ -229,6 +238,7 @@ async function renderCurrentSlide() {
   const slide = state.deck?.slides[state.currentIndex];
   if (!slide) {
     elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
+    hideTranscriptPanel();
     return;
   }
 
@@ -251,6 +261,14 @@ async function renderCurrentSlide() {
 
   if (!slide.audio) {
     updateSlideAudioStatus(slide);
+    if (isTranscriptPanelOpen()) {
+      await renderTranscriptContent({ keepOpen: true });
+    }
+    return;
+  }
+
+  if (isTranscriptPanelOpen()) {
+    await renderTranscriptContent({ keepOpen: true });
   }
 }
 
@@ -326,6 +344,84 @@ function refreshUi() {
   ]) {
     button.disabled = disabled;
   }
+
+  elements.transcriptToggleBtn.disabled = disabled;
+}
+
+async function toggleTranscriptPanel() {
+  const shouldOpen = !isTranscriptPanelOpen();
+  if (shouldOpen) {
+    await renderTranscriptContent({ keepOpen: true });
+    return;
+  }
+  setTranscriptPanelVisibility(shouldOpen);
+}
+
+function setTranscriptPanelVisibility(isVisible) {
+  elements.transcriptPanel.classList.toggle('hidden', !isVisible);
+  elements.transcriptToggleBtn.setAttribute('aria-expanded', String(isVisible));
+  elements.transcriptToggleBtn.textContent = isVisible ? 'Text/Audio ausblenden' : 'Text/Audio anzeigen';
+}
+
+function hideTranscriptPanel() {
+  setTranscriptPanelVisibility(false);
+  clearTranscriptPanelContent();
+}
+
+function clearTranscriptPanelContent() {
+  elements.transcriptHint.textContent = '';
+  elements.transcriptText.textContent = '';
+  elements.transcriptText.classList.add('hidden');
+  elements.transcriptAudioPlayer.pause();
+  elements.transcriptAudioPlayer.removeAttribute('src');
+  elements.transcriptAudioPlayer.classList.add('hidden');
+}
+
+function isTranscriptPanelOpen() {
+  return !elements.transcriptPanel.classList.contains('hidden');
+}
+
+async function renderTranscriptContent({ keepOpen = false } = {}) {
+  const slide = state.deck?.slides[state.currentIndex];
+  clearTranscriptPanelContent();
+
+  if (!slide?.audio?.src) {
+    elements.transcriptHint.textContent = 'Für diese Folie ist keine Audioquelle hinterlegt.';
+    setTranscriptPanelVisibility(keepOpen);
+    return;
+  }
+
+  const audioType = inferAudioType(slide.audio);
+
+  if (isTextAudioType(audioType)) {
+    try {
+      const textContent = await state.deck.assetLoader.loadText(slide.audio.src);
+      elements.transcriptText.textContent = audioType === 'ssml'
+        ? ssmlToDisplayText(textContent)
+        : textContent.trim();
+      elements.transcriptText.classList.remove('hidden');
+      elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
+    } catch (error) {
+      elements.transcriptHint.textContent = 'Der Text zur Audio-Datei konnte nicht geladen werden.';
+    }
+    setTranscriptPanelVisibility(keepOpen);
+    return;
+  }
+
+  if (isPlayableAudioType(audioType, slide.audio.src)) {
+    try {
+      elements.transcriptAudioPlayer.src = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
+      elements.transcriptAudioPlayer.classList.remove('hidden');
+      elements.transcriptHint.textContent = 'Für diese Folie liegt eine Audio-Datei vor. Du kannst im Player navigieren.';
+    } catch (error) {
+      elements.transcriptHint.textContent = 'Die Audio-Datei für den Player konnte nicht geladen werden.';
+    }
+    setTranscriptPanelVisibility(keepOpen);
+    return;
+  }
+
+  elements.transcriptHint.textContent = 'Der Audio-Typ dieser Folie wird für die Text/Audio-Anzeige nicht unterstützt.';
+  setTranscriptPanelVisibility(keepOpen);
 }
 
 async function withErrorHandling(fn) {
@@ -354,4 +450,50 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function inferAudioType(audioConfig = {}) {
+  const explicitType = String(audioConfig.type || '').trim().toLowerCase();
+  if (explicitType) {
+    return explicitType;
+  }
+
+  const src = String(audioConfig.src || '').trim();
+  if (!src) {
+    return '';
+  }
+
+  return src
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+}
+
+function ssmlToDisplayText(ssml) {
+  return ssml
+    .replace(/<break[^>]*time="(.*?)"[^>]*\/>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isTextAudioType(audioType) {
+  return audioType === 'txt' || audioType === 'ssml';
+}
+
+function isPlayableAudioType(audioType, sourcePath = '') {
+  if (audioType && !isTextAudioType(audioType)) {
+    return true;
+  }
+
+  const extension = String(sourcePath)
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+
+  return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'].includes(extension || '');
 }

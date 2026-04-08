@@ -54,6 +54,35 @@ code { font-family: Consolas, Monaco, monospace; }
   gap: 8px;
 }
 
+.transcript-panel {
+  margin: 12px 18px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(35, 42, 52, 0.55);
+}
+
+.transcript-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.transcript-panel pre {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  background: rgba(19, 22, 26, 0.75);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+#transcript-audio-player {
+  display: block;
+  margin-top: 10px;
+  width: min(540px, 100%);
+}
+
 button,
 .file-label,
 input[type="url"],
