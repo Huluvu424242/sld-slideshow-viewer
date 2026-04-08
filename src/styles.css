@@ -135,6 +135,14 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   stroke: none;
 }
 
+.icon-btn--transcript .transcript-eye-slash {
+  display: none;
+}
+
+.icon-btn--transcript.is-open .transcript-eye-slash {
+  display: block;
+}
+
 .toolbar-group--primary {
   gap: 10px;
 }

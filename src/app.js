@@ -360,7 +360,11 @@ async function toggleTranscriptPanel() {
 function setTranscriptPanelVisibility(isVisible) {
   elements.transcriptPanel.classList.toggle('hidden', !isVisible);
   elements.transcriptToggleBtn.setAttribute('aria-expanded', String(isVisible));
-  elements.transcriptToggleBtn.textContent = isVisible ? 'Text/Audio ausblenden' : 'Text/Audio anzeigen';
+  elements.transcriptToggleBtn.setAttribute('aria-pressed', String(isVisible));
+  elements.transcriptToggleBtn.classList.toggle('is-open', isVisible);
+  const tooltipText = isVisible ? 'Audiotext ausblenden' : 'Audiotext einblenden';
+  elements.transcriptToggleBtn.title = tooltipText;
+  elements.transcriptToggleBtn.setAttribute('aria-label', tooltipText);
 }
 
 function hideTranscriptPanel() {
