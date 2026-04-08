@@ -289,7 +289,8 @@ function renderSlideList() {
     const li = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = `${index + 1}. ${slide.title || slide.id || slide.content}`;
+    const slideLabel = slide.id || slide.title || slide.content;
+    button.textContent = `${index + 1}. ${slideLabel}`;
     if (index === state.currentIndex) {
       button.classList.add('active');
     }
