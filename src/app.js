@@ -402,7 +402,7 @@ async function renderTranscriptContent({ keepOpen = false } = {}) {
       const textContent = await state.deck.assetLoader.loadText(slide.audio.src);
       elements.transcriptText.textContent = audioType === 'ssml'
         ? ssmlToDisplayText(textContent)
-        : textContent.trim();
+        : preserveStructuredText(textContent);
       elements.transcriptText.classList.remove('hidden');
       elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
     } catch (error) {
@@ -476,11 +476,18 @@ function inferAudioType(audioConfig = {}) {
 }
 
 function ssmlToDisplayText(ssml) {
-  return ssml
-    .replace(/<break[^>]*time="(.*?)"[^>]*\/>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const normalized = String(ssml).replace(/\r\n?/g, '\n');
+  const withStructure = normalized
+    .replace(/<\s*break\b[^>]*\/?>/gi, '\n')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/\s*(p|div|section|article|li|ul|ol|h1|h2|h3|h4|h5|h6)\s*>/gi, '\n')
+    .replace(/<\s*\/\s*(s|sentence)\s*>/gi, '\n')
+    .replace(/<\s*\/\s*(speak|paragraph)\s*>/gi, '\n\n');
+
+  const withoutTags = withStructure.replace(/<[^>]+>/g, '');
+  const decoded = decodeSimpleXmlEntities(withoutTags);
+
+  return preserveStructuredText(decoded);
 }
 
 function isTextAudioType(audioType) {
@@ -500,4 +507,22 @@ function isPlayableAudioType(audioType, sourcePath = '') {
     ?.toLowerCase();
 
   return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'].includes(extension || '');
+}
+
+function preserveStructuredText(text) {
+  return String(text)
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function decodeSimpleXmlEntities(text) {
+  return String(text)
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'");
 }
