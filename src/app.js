@@ -378,6 +378,7 @@ function clearTranscriptPanelContent() {
   elements.transcriptText.classList.add('hidden');
   elements.transcriptAudioPlayer.pause();
   elements.transcriptAudioPlayer.removeAttribute('src');
+  elements.transcriptAudioPlayer.classList.remove('is-disabled');
   elements.transcriptAudioPlayer.classList.add('hidden');
 }
 
@@ -396,6 +397,20 @@ async function renderTranscriptContent({ keepOpen = false } = {}) {
   }
 
   const audioType = inferAudioType(slide.audio);
+  elements.transcriptAudioPlayer.classList.remove('hidden');
+
+  try {
+    const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
+    elements.transcriptAudioPlayer.src = resolvedSource;
+    const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
+    elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
+    if (!playableInBrowser) {
+      elements.transcriptAudioPlayer.pause();
+    }
+  } catch (error) {
+    elements.transcriptAudioPlayer.classList.add('is-disabled');
+    elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
+  }
 
   if (isTextAudioType(audioType)) {
     try {
@@ -404,7 +419,9 @@ async function renderTranscriptContent({ keepOpen = false } = {}) {
         ? ssmlToDisplayText(textContent)
         : preserveStructuredText(textContent);
       elements.transcriptText.classList.remove('hidden');
-      elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
+      if (!elements.transcriptHint.textContent) {
+        elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
+      }
     } catch (error) {
       elements.transcriptHint.textContent = 'Der Text zur Audio-Datei konnte nicht geladen werden.';
     }
@@ -413,18 +430,16 @@ async function renderTranscriptContent({ keepOpen = false } = {}) {
   }
 
   if (isPlayableAudioType(audioType, slide.audio.src)) {
-    try {
-      elements.transcriptAudioPlayer.src = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
-      elements.transcriptAudioPlayer.classList.remove('hidden');
+    if (!elements.transcriptHint.textContent) {
       elements.transcriptHint.textContent = 'Für diese Folie liegt eine Audio-Datei vor. Du kannst im Player navigieren.';
-    } catch (error) {
-      elements.transcriptHint.textContent = 'Die Audio-Datei für den Player konnte nicht geladen werden.';
     }
     setTranscriptPanelVisibility(keepOpen);
     return;
   }
 
-  elements.transcriptHint.textContent = 'Der Audio-Typ dieser Folie wird für die Text/Audio-Anzeige nicht unterstützt.';
+  if (!elements.transcriptHint.textContent) {
+    elements.transcriptHint.textContent = 'Der Audio-Typ dieser Folie wird für die Text/Audio-Anzeige nicht unterstützt.';
+  }
   setTranscriptPanelVisibility(keepOpen);
 }
 
@@ -525,4 +540,46 @@ function decodeSimpleXmlEntities(text) {
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
     .replaceAll('&apos;', "'");
+}
+
+function canPlayInAudioElement(audioElement, audioType, sourcePath) {
+  const mimeType = inferMimeType(audioType, sourcePath);
+  if (!mimeType) {
+    return false;
+  }
+  return audioElement.canPlayType(mimeType) !== '';
+}
+
+function inferMimeType(audioType, sourcePath) {
+  const normalizedType = String(audioType || '').toLowerCase();
+  if (normalizedType === 'ssml') return 'application/ssml+xml';
+  if (normalizedType === 'txt') return 'text/plain';
+  if (normalizedType === 'mp3') return 'audio/mpeg';
+  if (normalizedType === 'wav') return 'audio/wav';
+  if (normalizedType === 'ogg') return 'audio/ogg';
+  if (normalizedType === 'm4a') return 'audio/mp4';
+  if (normalizedType === 'aac') return 'audio/aac';
+  if (normalizedType === 'flac') return 'audio/flac';
+  if (normalizedType === 'webm') return 'audio/webm';
+
+  const extension = String(sourcePath)
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+
+  const extensionToMime = {
+    ssml: 'application/ssml+xml',
+    txt: 'text/plain',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
+    m4a: 'audio/mp4',
+    aac: 'audio/aac',
+    flac: 'audio/flac',
+    webm: 'audio/webm',
+  };
+
+  return extensionToMime[extension] || '';
 }
