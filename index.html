@@ -108,6 +108,21 @@
             </button>
           </div>
           <div class="toolbar-group">
+            <button
+              id="transcript-toggle-btn"
+              class="icon-btn icon-btn--transcript"
+              type="button"
+              title="Audiotext einblenden"
+              aria-label="Audiotext einblenden"
+              aria-expanded="false"
+              aria-pressed="false"
+            >
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z" />
+                <circle cx="12" cy="12" r="2.8" />
+                <path class="transcript-eye-slash" d="M4 4l16 16" />
+              </svg>
+            </button>
             <label for="goto-input">Gehe zu</label>
             <input id="goto-input" type="number" min="1" step="1" value="1">
             <button id="goto-btn" type="button">Los</button>
@@ -117,6 +132,13 @@
             </label>
           </div>
         </header>
+
+        <section id="transcript-panel" class="transcript-panel hidden" aria-live="polite">
+          <h3>Audioinhalt der aktuellen Folie</h3>
+          <p id="transcript-hint" class="muted small"></p>
+          <audio id="transcript-audio-player" controls class="hidden"></audio>
+          <pre id="transcript-text" class="hidden"></pre>
+        </section>
 
         <article id="slide-stage" class="slide-stage">
           <div class="placeholder">
