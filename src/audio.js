@@ -22,7 +22,7 @@ export class AudioController {
     this.currentSlideKey = `${slide.id || ''}:${slide.audio.src || audioType}`;
 
     try {
-      if (audioType === 'mp3') {
+      if (isPlayableAudioType(audioType)) {
         const resolvedUrl = await assetLoader.resolvePlayableUrl(slide.audio.src);
         await this.playAudioElement(resolvedUrl);
         return;
@@ -90,7 +90,7 @@ export class AudioController {
       this.onEnded?.();
     }, { once: true });
     audio.addEventListener('error', async () => {
-      console.warn('MP3 konnte nicht abgespielt werden. Fallback wird gesprochen.', url);
+      console.warn('Audio-Datei konnte nicht abgespielt werden. Fallback wird gesprochen.', url);
       this.audio = null;
       this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
       await this.playFallbackMessage();
@@ -164,11 +164,7 @@ function inferAudioType(audioConfig = {}) {
     .pop()
     ?.toLowerCase();
 
-  if (extension === 'mp3' || extension === 'txt' || extension === 'ssml') {
-    return extension;
-  }
-
-  return '';
+  return extension || '';
 }
 
 function ssmlToSpeechText(ssml) {
@@ -177,4 +173,19 @@ function ssmlToSpeechText(ssml) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function isPlayableAudioType(audioType) {
+  return [
+    'mp3',
+    'm4a',
+    'aac',
+    'wav',
+    'ogg',
+    'oga',
+    'opus',
+    'flac',
+    'webm',
+    'mp4',
+  ].includes(String(audioType || '').toLowerCase());
 }

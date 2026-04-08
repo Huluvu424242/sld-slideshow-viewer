@@ -521,7 +521,7 @@ function isPlayableAudioType(audioType, sourcePath = '') {
     .pop()
     ?.toLowerCase();
 
-  return ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'webm'].includes(extension || '');
+  return ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'webm', 'mp4'].includes(extension || '');
 }
 
 function preserveStructuredText(text) {
@@ -557,10 +557,13 @@ function inferMimeType(audioType, sourcePath) {
   if (normalizedType === 'mp3') return 'audio/mpeg';
   if (normalizedType === 'wav') return 'audio/wav';
   if (normalizedType === 'ogg') return 'audio/ogg';
+  if (normalizedType === 'oga') return 'audio/ogg';
+  if (normalizedType === 'opus') return 'audio/ogg; codecs=opus';
   if (normalizedType === 'm4a') return 'audio/mp4';
   if (normalizedType === 'aac') return 'audio/aac';
   if (normalizedType === 'flac') return 'audio/flac';
   if (normalizedType === 'webm') return 'audio/webm';
+  if (normalizedType === 'mp4') return 'audio/mp4';
 
   const extension = String(sourcePath)
     .split('#', 1)[0]
@@ -575,10 +578,13 @@ function inferMimeType(audioType, sourcePath) {
     mp3: 'audio/mpeg',
     wav: 'audio/wav',
     ogg: 'audio/ogg',
+    oga: 'audio/ogg',
+    opus: 'audio/ogg; codecs=opus',
     m4a: 'audio/mp4',
     aac: 'audio/aac',
     flac: 'audio/flac',
     webm: 'audio/webm',
+    mp4: 'audio/mp4',
   };
 
   return extensionToMime[extension] || '';
