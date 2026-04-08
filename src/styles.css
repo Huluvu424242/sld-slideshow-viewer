@@ -145,6 +145,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .toolbar-group--primary {
   gap: 10px;
+  flex-wrap: nowrap;
 }
 
 input[type="url"],
