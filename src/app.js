@@ -371,6 +371,7 @@ function setTranscriptPanelVisibility(isVisible) {
 function hideTranscriptPanel() {
   setTranscriptPanelVisibility(false);
   clearTranscriptPanelContent();
+  window.scrollTo(0, 0);
 }
 
 function clearTranscriptPanelContent() {
