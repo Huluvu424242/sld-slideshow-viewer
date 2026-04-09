@@ -315,7 +315,7 @@ function renderSlideList() {
       button.classList.add('active');
     }
     button.addEventListener('click', () => {
-      void goToSlide(index);
+      void goToSlide(index, { autoplay: true });
     });
     li.append(button);
     fragment.append(li);
