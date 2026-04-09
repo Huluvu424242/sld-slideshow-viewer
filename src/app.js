@@ -5,6 +5,14 @@ import { loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote } from './lo
 
 const state = createInitialState();
 let slideAdvanceTimer = null;
+let slideChangeCueAudioContext = null;
+const SLIDE_CHANGE_BELL_VOLUME = 5.0;
+const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.045;
+const SLIDE_CHANGE_BELL_DECAY_SECONDS = 1.8;
+const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.5;
+const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
+let isSlideTransitionInProgress = false;
+let transitionUnlockTimer = null;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -123,6 +131,9 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', async (event) => {
+    if (isSlideTransitionInProgress) {
+      return;
+    }
     if (event.target instanceof HTMLInputElement) {
       return;
     }
@@ -142,6 +153,41 @@ function clearSlideAdvanceTimer() {
     window.clearTimeout(slideAdvanceTimer);
     slideAdvanceTimer = null;
   }
+}
+
+function beginSlideTransitionLock() {
+  isSlideTransitionInProgress = true;
+  refreshUi();
+  setSlideListNavigationDisabled(true);
+  clearTransitionUnlockTimer();
+  transitionUnlockTimer = window.setTimeout(() => {
+    if (!isSlideTransitionInProgress) {
+      return;
+    }
+    console.warn('Navigation wurde per Notfall-Timeout entsperrt.');
+    endSlideTransitionLock();
+  }, TRANSITION_UNLOCK_TIMEOUT_MS);
+}
+
+function endSlideTransitionLock() {
+  isSlideTransitionInProgress = false;
+  clearTransitionUnlockTimer();
+  refreshUi();
+  setSlideListNavigationDisabled(false);
+}
+
+function clearTransitionUnlockTimer() {
+  if (transitionUnlockTimer) {
+    window.clearTimeout(transitionUnlockTimer);
+    transitionUnlockTimer = null;
+  }
+}
+
+function setSlideListNavigationDisabled(disabled) {
+  const buttons = elements.slideList.querySelectorAll('button');
+  buttons.forEach((button) => {
+    button.disabled = disabled;
+  });
 }
 
 function getSlideShowtimeSeconds(slide) {
@@ -216,22 +262,94 @@ async function setDeck(deck) {
 }
 
 async function goToSlide(index, options = {}) {
+  if (isSlideTransitionInProgress) {
+    return;
+  }
   if (!state.deck) {
     return;
   }
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
-  clearSlideAdvanceTimer();
-  state.currentIndex = index;
-  await audioController.stop();
-  hideTranscriptPanel();
-  refreshUi();
-  renderSlideList();
-  await renderCurrentSlide();
-  if (options.autoplay) {
-    await playCurrentSlide();
+  beginSlideTransitionLock();
+  try {
+    const bellDurationSeconds = playSlideChangeCue();
+    await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
+    clearSlideAdvanceTimer();
+    state.currentIndex = index;
+    await audioController.stop();
+    hideTranscriptPanel();
+    refreshUi();
+    renderSlideList();
+    await renderCurrentSlide();
+    if (options.autoplay) {
+      await playCurrentSlide({ ignoreTransitionLock: true });
+    }
+  } finally {
+    endSlideTransitionLock();
   }
+}
+
+function playSlideChangeCue() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return 0;
+  }
+
+  try {
+    if (!slideChangeCueAudioContext) {
+      slideChangeCueAudioContext = new AudioContextClass();
+    }
+    const context = slideChangeCueAudioContext;
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+
+    const now = context.currentTime;
+    const attackEnd = now + SLIDE_CHANGE_BELL_STRIKE_SECONDS;
+    const releaseEnd = attackEnd + SLIDE_CHANGE_BELL_DECAY_SECONDS;
+    const masterGain = context.createGain();
+    const bellVoices = [
+      { frequency: 110, level: 1.0, type: 'sine', detune: -3 },
+      { frequency: 165, level: 0.7, type: 'triangle', detune: 2 },
+      { frequency: 220, level: 0.45, type: 'sine', detune: -1 },
+      { frequency: 277, level: 0.3, type: 'sine', detune: 1 },
+      { frequency: 330, level: 0.2, type: 'triangle', detune: 0 },
+    ];
+
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(SLIDE_CHANGE_BELL_VOLUME, attackEnd);
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, releaseEnd);
+    masterGain.connect(context.destination);
+
+    bellVoices.forEach(({ frequency, level, type, detune }) => {
+      const oscillator = context.createOscillator();
+      const voiceGain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime(detune, now);
+      oscillator.detune.linearRampToValueAtTime(detune * 0.4, releaseEnd);
+
+      voiceGain.gain.setValueAtTime(Math.max(0.0001, level * 0.001), now);
+      voiceGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, level), attackEnd);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, releaseEnd);
+
+      oscillator.connect(voiceGain);
+      voiceGain.connect(masterGain);
+      oscillator.start(now);
+      oscillator.stop(releaseEnd + 0.05);
+    });
+    return SLIDE_CHANGE_BELL_STRIKE_SECONDS + SLIDE_CHANGE_BELL_DECAY_SECONDS;
+  } catch (error) {
+    console.debug('Slide-Change-Cue konnte nicht abgespielt werden.', error);
+    return 0;
+  }
+}
+
+function delay(durationMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
 }
 
 async function renderCurrentSlide() {
@@ -284,7 +402,10 @@ async function hydrateAsyncAssets() {
   }
 }
 
-async function playCurrentSlide() {
+async function playCurrentSlide(options = {}) {
+  if (isSlideTransitionInProgress && !options.ignoreTransitionLock) {
+    return;
+  }
   const slide = state.deck?.slides[state.currentIndex];
   if (!slide) {
     return;
@@ -313,6 +434,7 @@ function renderSlideList() {
     if (index === state.currentIndex) {
       button.classList.add('active');
     }
+    button.disabled = isSlideTransitionInProgress;
     button.addEventListener('click', () => {
       void goToSlide(index);
     });
@@ -332,7 +454,7 @@ function refreshUi() {
   elements.gotoInput.value = slideCount > 0 ? String(state.currentIndex + 1) : '1';
   elements.autoplayNextCheckbox.checked = state.autoAdvance;
 
-  const disabled = !state.deck;
+  const disabled = !state.deck || isSlideTransitionInProgress;
   for (const button of [
     elements.firstBtn,
     elements.prevBtn,
@@ -346,6 +468,7 @@ function refreshUi() {
     button.disabled = disabled;
   }
 
+  elements.gotoInput.disabled = disabled;
   elements.transcriptToggleBtn.disabled = disabled;
 }
 
