@@ -180,7 +180,7 @@ function scheduleAutoAdvanceForSilentSlide(slide) {
       return;
     }
     if (state.currentIndex < state.deck.slides.length - 1) {
-      await goToSlide(state.currentIndex + 1, { autoplay: true });
+      await goToSlide(state.currentIndex + 1, { autoplay: false });
     }
   }, showtime * 1000);
 
@@ -222,10 +222,10 @@ async function goToSlide(index, options = {}) {
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
-  clearSlideAdvanceTimer();
-  state.currentIndex = index;
   await audioController.stop();
+  clearSlideAdvanceTimer();
   hideTranscriptPanel();
+  state.currentIndex = index;
   refreshUi();
   renderSlideList();
   await renderCurrentSlide();
