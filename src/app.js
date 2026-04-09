@@ -5,6 +5,14 @@ import { loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote } from './lo
 
 const state = createInitialState();
 let slideAdvanceTimer = null;
+let slideChangeCueAudioContext = null;
+const SLIDE_CHANGE_BELL_VOLUME = 5.0;
+const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.045;
+const SLIDE_CHANGE_BELL_DECAY_SECONDS = 1.8;
+const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.5;
+const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
+let isSlideTransitionInProgress = false;
+let transitionUnlockTimer = null;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -15,6 +23,11 @@ const elements = {
   slideList: document.querySelector('#slide-list'),
   slideStage: document.querySelector('#slide-stage'),
   gotoInput: document.querySelector('#goto-input'),
+  transcriptToggleBtn: document.querySelector('#transcript-toggle-btn'),
+  transcriptPanel: document.querySelector('#transcript-panel'),
+  transcriptHint: document.querySelector('#transcript-hint'),
+  transcriptText: document.querySelector('#transcript-text'),
+  transcriptAudioPlayer: document.querySelector('#transcript-audio-player'),
   autoplayNextCheckbox: document.querySelector('#autoplay-next-checkbox'),
   remoteUrlInput: document.querySelector('#remote-url-input'),
   zipInput: document.querySelector('#zip-input'),
@@ -113,8 +126,14 @@ function bindEvents() {
   elements.autoplayNextCheckbox.addEventListener('change', () => {
     state.autoAdvance = elements.autoplayNextCheckbox.checked;
   });
+  elements.transcriptToggleBtn.addEventListener('click', async () => {
+    await toggleTranscriptPanel();
+  });
 
   document.addEventListener('keydown', async (event) => {
+    if (isSlideTransitionInProgress) {
+      return;
+    }
     if (event.target instanceof HTMLInputElement) {
       return;
     }
@@ -134,6 +153,41 @@ function clearSlideAdvanceTimer() {
     window.clearTimeout(slideAdvanceTimer);
     slideAdvanceTimer = null;
   }
+}
+
+function beginSlideTransitionLock() {
+  isSlideTransitionInProgress = true;
+  refreshUi();
+  setSlideListNavigationDisabled(true);
+  clearTransitionUnlockTimer();
+  transitionUnlockTimer = window.setTimeout(() => {
+    if (!isSlideTransitionInProgress) {
+      return;
+    }
+    console.warn('Navigation wurde per Notfall-Timeout entsperrt.');
+    endSlideTransitionLock();
+  }, TRANSITION_UNLOCK_TIMEOUT_MS);
+}
+
+function endSlideTransitionLock() {
+  isSlideTransitionInProgress = false;
+  clearTransitionUnlockTimer();
+  refreshUi();
+  setSlideListNavigationDisabled(false);
+}
+
+function clearTransitionUnlockTimer() {
+  if (transitionUnlockTimer) {
+    window.clearTimeout(transitionUnlockTimer);
+    transitionUnlockTimer = null;
+  }
+}
+
+function setSlideListNavigationDisabled(disabled) {
+  const buttons = elements.slideList.querySelectorAll('button');
+  buttons.forEach((button) => {
+    button.disabled = disabled;
+  });
 }
 
 function getSlideShowtimeSeconds(slide) {
@@ -201,27 +255,101 @@ async function setDeck(deck) {
   state.sourceKind = deck.sourceKind;
   state.currentIndex = 0;
   await audioController.stop();
+  hideTranscriptPanel();
   refreshUi();
   renderSlideList();
   await renderCurrentSlide();
 }
 
 async function goToSlide(index, options = {}) {
+  if (isSlideTransitionInProgress) {
+    return;
+  }
   if (!state.deck) {
     return;
   }
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
-  clearSlideAdvanceTimer();
-  state.currentIndex = index;
-  await audioController.stop();
-  refreshUi();
-  renderSlideList();
-  await renderCurrentSlide();
-  if (options.autoplay) {
-    await playCurrentSlide();
+  beginSlideTransitionLock();
+  try {
+    const bellDurationSeconds = playSlideChangeCue();
+    await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
+    clearSlideAdvanceTimer();
+    state.currentIndex = index;
+    await audioController.stop();
+    hideTranscriptPanel();
+    refreshUi();
+    renderSlideList();
+    await renderCurrentSlide();
+    if (options.autoplay) {
+      await playCurrentSlide({ ignoreTransitionLock: true });
+    }
+  } finally {
+    endSlideTransitionLock();
   }
+}
+
+function playSlideChangeCue() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return 0;
+  }
+
+  try {
+    if (!slideChangeCueAudioContext) {
+      slideChangeCueAudioContext = new AudioContextClass();
+    }
+    const context = slideChangeCueAudioContext;
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+
+    const now = context.currentTime;
+    const attackEnd = now + SLIDE_CHANGE_BELL_STRIKE_SECONDS;
+    const releaseEnd = attackEnd + SLIDE_CHANGE_BELL_DECAY_SECONDS;
+    const masterGain = context.createGain();
+    const bellVoices = [
+      { frequency: 110, level: 1.0, type: 'sine', detune: -3 },
+      { frequency: 165, level: 0.7, type: 'triangle', detune: 2 },
+      { frequency: 220, level: 0.45, type: 'sine', detune: -1 },
+      { frequency: 277, level: 0.3, type: 'sine', detune: 1 },
+      { frequency: 330, level: 0.2, type: 'triangle', detune: 0 },
+    ];
+
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(SLIDE_CHANGE_BELL_VOLUME, attackEnd);
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, releaseEnd);
+    masterGain.connect(context.destination);
+
+    bellVoices.forEach(({ frequency, level, type, detune }) => {
+      const oscillator = context.createOscillator();
+      const voiceGain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime(detune, now);
+      oscillator.detune.linearRampToValueAtTime(detune * 0.4, releaseEnd);
+
+      voiceGain.gain.setValueAtTime(Math.max(0.0001, level * 0.001), now);
+      voiceGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, level), attackEnd);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, releaseEnd);
+
+      oscillator.connect(voiceGain);
+      voiceGain.connect(masterGain);
+      oscillator.start(now);
+      oscillator.stop(releaseEnd + 0.05);
+    });
+    return SLIDE_CHANGE_BELL_STRIKE_SECONDS + SLIDE_CHANGE_BELL_DECAY_SECONDS;
+  } catch (error) {
+    console.debug('Slide-Change-Cue konnte nicht abgespielt werden.', error);
+    return 0;
+  }
+}
+
+function delay(durationMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
 }
 
 async function renderCurrentSlide() {
@@ -229,6 +357,7 @@ async function renderCurrentSlide() {
   const slide = state.deck?.slides[state.currentIndex];
   if (!slide) {
     elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
+    hideTranscriptPanel();
     return;
   }
 
@@ -251,6 +380,14 @@ async function renderCurrentSlide() {
 
   if (!slide.audio) {
     updateSlideAudioStatus(slide);
+    if (isTranscriptPanelOpen()) {
+      await renderTranscriptContent({ keepOpen: true });
+    }
+    return;
+  }
+
+  if (isTranscriptPanelOpen()) {
+    await renderTranscriptContent({ keepOpen: true });
   }
 }
 
@@ -265,7 +402,10 @@ async function hydrateAsyncAssets() {
   }
 }
 
-async function playCurrentSlide() {
+async function playCurrentSlide(options = {}) {
+  if (isSlideTransitionInProgress && !options.ignoreTransitionLock) {
+    return;
+  }
   const slide = state.deck?.slides[state.currentIndex];
   if (!slide) {
     return;
@@ -289,10 +429,12 @@ function renderSlideList() {
     const li = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = `${index + 1}. ${slide.title || slide.id || slide.content}`;
+    const slideLabel = slide.title || slide.id || slide.content;
+    button.textContent = ` ${slideLabel}`;
     if (index === state.currentIndex) {
       button.classList.add('active');
     }
+    button.disabled = isSlideTransitionInProgress;
     button.addEventListener('click', () => {
       void goToSlide(index);
     });
@@ -312,7 +454,7 @@ function refreshUi() {
   elements.gotoInput.value = slideCount > 0 ? String(state.currentIndex + 1) : '1';
   elements.autoplayNextCheckbox.checked = state.autoAdvance;
 
-  const disabled = !state.deck;
+  const disabled = !state.deck || isSlideTransitionInProgress;
   for (const button of [
     elements.firstBtn,
     elements.prevBtn,
@@ -325,6 +467,105 @@ function refreshUi() {
   ]) {
     button.disabled = disabled;
   }
+
+  elements.gotoInput.disabled = disabled;
+  elements.transcriptToggleBtn.disabled = disabled;
+}
+
+async function toggleTranscriptPanel() {
+  const shouldOpen = !isTranscriptPanelOpen();
+  if (shouldOpen) {
+    await renderTranscriptContent({ keepOpen: true });
+    return;
+  }
+  setTranscriptPanelVisibility(shouldOpen);
+}
+
+function setTranscriptPanelVisibility(isVisible) {
+  elements.transcriptPanel.classList.toggle('hidden', !isVisible);
+  elements.transcriptToggleBtn.setAttribute('aria-expanded', String(isVisible));
+  elements.transcriptToggleBtn.setAttribute('aria-pressed', String(isVisible));
+  elements.transcriptToggleBtn.classList.toggle('is-open', isVisible);
+  const tooltipText = isVisible ? 'Audiotext ausblenden' : 'Audiotext einblenden';
+  elements.transcriptToggleBtn.title = tooltipText;
+  elements.transcriptToggleBtn.setAttribute('aria-label', tooltipText);
+}
+
+function hideTranscriptPanel() {
+  setTranscriptPanelVisibility(false);
+  clearTranscriptPanelContent();
+  window.scrollTo(0, 0);
+}
+
+function clearTranscriptPanelContent() {
+  elements.transcriptHint.textContent = '';
+  elements.transcriptText.textContent = '';
+  elements.transcriptText.classList.add('hidden');
+  elements.transcriptAudioPlayer.pause();
+  elements.transcriptAudioPlayer.removeAttribute('src');
+  elements.transcriptAudioPlayer.classList.remove('is-disabled');
+  elements.transcriptAudioPlayer.classList.add('hidden');
+}
+
+function isTranscriptPanelOpen() {
+  return !elements.transcriptPanel.classList.contains('hidden');
+}
+
+async function renderTranscriptContent({ keepOpen = false } = {}) {
+  const slide = state.deck?.slides[state.currentIndex];
+  clearTranscriptPanelContent();
+
+  if (!slide?.audio?.src) {
+    elements.transcriptHint.textContent = 'Für diese Folie ist keine Audioquelle hinterlegt.';
+    setTranscriptPanelVisibility(keepOpen);
+    return;
+  }
+
+  const audioType = inferAudioType(slide.audio);
+  elements.transcriptAudioPlayer.classList.remove('hidden');
+
+  try {
+    const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
+    elements.transcriptAudioPlayer.src = resolvedSource;
+    const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
+    elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
+    if (!playableInBrowser) {
+      elements.transcriptAudioPlayer.pause();
+    }
+  } catch (error) {
+    elements.transcriptAudioPlayer.classList.add('is-disabled');
+    elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
+  }
+
+  if (isTextAudioType(audioType)) {
+    try {
+      const textContent = await state.deck.assetLoader.loadText(slide.audio.src);
+      elements.transcriptText.textContent = audioType === 'ssml'
+        ? ssmlToDisplayText(textContent)
+        : preserveStructuredText(textContent);
+      elements.transcriptText.classList.remove('hidden');
+      if (!elements.transcriptHint.textContent) {
+        elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
+      }
+    } catch (error) {
+      elements.transcriptHint.textContent = 'Der Text zur Audio-Datei konnte nicht geladen werden.';
+    }
+    setTranscriptPanelVisibility(keepOpen);
+    return;
+  }
+
+  if (isPlayableAudioType(audioType, slide.audio.src)) {
+    if (!elements.transcriptHint.textContent) {
+      elements.transcriptHint.textContent = 'Für diese Folie liegt eine Audio-Datei vor. Du kannst im Player navigieren.';
+    }
+    setTranscriptPanelVisibility(keepOpen);
+    return;
+  }
+
+  if (!elements.transcriptHint.textContent) {
+    elements.transcriptHint.textContent = 'Der Audio-Typ dieser Folie wird für die Text/Audio-Anzeige nicht unterstützt.';
+  }
+  setTranscriptPanelVisibility(keepOpen);
 }
 
 async function withErrorHandling(fn) {
@@ -353,4 +594,123 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function inferAudioType(audioConfig = {}) {
+  const explicitType = String(audioConfig.type || '').trim().toLowerCase();
+  if (explicitType) {
+    return explicitType;
+  }
+
+  const src = String(audioConfig.src || '').trim();
+  if (!src) {
+    return '';
+  }
+
+  return src
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+}
+
+function ssmlToDisplayText(ssml) {
+  const normalized = String(ssml).replace(/\r\n?/g, '\n');
+  const withStructure = normalized
+    .replace(/<\s*break\b[^>]*\/?>/gi, '\n')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/\s*(p|div|section|article|li|ul|ol|h1|h2|h3|h4|h5|h6)\s*>/gi, '\n')
+    .replace(/<\s*\/\s*(s|sentence)\s*>/gi, '\n')
+    .replace(/<\s*\/\s*(speak|paragraph)\s*>/gi, '\n\n');
+
+  const withoutTags = withStructure.replace(/<[^>]+>/g, '');
+  const decoded = decodeSimpleXmlEntities(withoutTags);
+
+  return preserveStructuredText(decoded);
+}
+
+function isTextAudioType(audioType) {
+  return audioType === 'txt' || audioType === 'ssml';
+}
+
+function isPlayableAudioType(audioType, sourcePath = '') {
+  if (audioType && !isTextAudioType(audioType)) {
+    return true;
+  }
+
+  const extension = String(sourcePath)
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+
+  return ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'webm', 'mp4'].includes(extension || '');
+}
+
+function preserveStructuredText(text) {
+  return String(text)
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function decodeSimpleXmlEntities(text) {
+  return String(text)
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'");
+}
+
+function canPlayInAudioElement(audioElement, audioType, sourcePath) {
+  const mimeType = inferMimeType(audioType, sourcePath);
+  if (!mimeType) {
+    return false;
+  }
+  return audioElement.canPlayType(mimeType) !== '';
+}
+
+function inferMimeType(audioType, sourcePath) {
+  const normalizedType = String(audioType || '').toLowerCase();
+  if (normalizedType === 'ssml') return 'application/ssml+xml';
+  if (normalizedType === 'txt') return 'text/plain';
+  if (normalizedType === 'mp3') return 'audio/mpeg';
+  if (normalizedType === 'wav') return 'audio/wav';
+  if (normalizedType === 'ogg') return 'audio/ogg';
+  if (normalizedType === 'oga') return 'audio/ogg';
+  if (normalizedType === 'opus') return 'audio/ogg; codecs=opus';
+  if (normalizedType === 'm4a') return 'audio/mp4';
+  if (normalizedType === 'aac') return 'audio/aac';
+  if (normalizedType === 'flac') return 'audio/flac';
+  if (normalizedType === 'webm') return 'audio/webm';
+  if (normalizedType === 'mp4') return 'audio/mp4';
+
+  const extension = String(sourcePath)
+    .split('#', 1)[0]
+    .split('?', 1)[0]
+    .split('.')
+    .pop()
+    ?.toLowerCase();
+
+  const extensionToMime = {
+    ssml: 'application/ssml+xml',
+    txt: 'text/plain',
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
+    oga: 'audio/ogg',
+    opus: 'audio/ogg; codecs=opus',
+    m4a: 'audio/mp4',
+    aac: 'audio/aac',
+    flac: 'audio/flac',
+    webm: 'audio/webm',
+    mp4: 'audio/mp4',
+  };
+
+  return extensionToMime[extension] || '';
 }
