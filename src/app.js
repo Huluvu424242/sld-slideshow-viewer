@@ -6,6 +6,9 @@ import { loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote } from './lo
 const state = createInitialState();
 let slideAdvanceTimer = null;
 let slideChangeCueAudioContext = null;
+const SLIDE_CHANGE_BELL_VOLUME = 0.03;
+const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.045;
+const SLIDE_CHANGE_BELL_DECAY_SECONDS = 1.8;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -252,22 +255,39 @@ function playSlideChangeCue() {
     }
 
     const now = context.currentTime;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
+    const attackEnd = now + SLIDE_CHANGE_BELL_STRIKE_SECONDS;
+    const releaseEnd = attackEnd + SLIDE_CHANGE_BELL_DECAY_SECONDS;
+    const masterGain = context.createGain();
+    const bellVoices = [
+      { frequency: 110, level: 1.0, type: 'sine', detune: -3 },
+      { frequency: 165, level: 0.7, type: 'triangle', detune: 2 },
+      { frequency: 220, level: 0.45, type: 'sine', detune: -1 },
+      { frequency: 277, level: 0.3, type: 'sine', detune: 1 },
+      { frequency: 330, level: 0.2, type: 'triangle', detune: 0 },
+    ];
 
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, now);
-    oscillator.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(SLIDE_CHANGE_BELL_VOLUME, attackEnd);
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, releaseEnd);
+    masterGain.connect(context.destination);
 
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.02, now + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    bellVoices.forEach(({ frequency, level, type, detune }) => {
+      const oscillator = context.createOscillator();
+      const voiceGain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.detune.setValueAtTime(detune, now);
+      oscillator.detune.linearRampToValueAtTime(detune * 0.4, releaseEnd);
 
-    oscillator.connect(gain);
-    gain.connect(context.destination);
+      voiceGain.gain.setValueAtTime(Math.max(0.0001, level * 0.001), now);
+      voiceGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, level), attackEnd);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, releaseEnd);
 
-    oscillator.start(now);
-    oscillator.stop(now + 0.2);
+      oscillator.connect(voiceGain);
+      voiceGain.connect(masterGain);
+      oscillator.start(now);
+      oscillator.stop(releaseEnd + 0.05);
+    });
   } catch (error) {
     console.debug('Slide-Change-Cue konnte nicht abgespielt werden.', error);
   }
