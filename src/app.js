@@ -9,7 +9,10 @@ let slideChangeCueAudioContext = null;
 const SLIDE_CHANGE_BELL_VOLUME = 5.0;
 const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.045;
 const SLIDE_CHANGE_BELL_DECAY_SECONDS = 1.8;
-const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 2;
+const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.5;
+const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
+let isSlideTransitionInProgress = false;
+let transitionUnlockTimer = null;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -128,6 +131,9 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', async (event) => {
+    if (isSlideTransitionInProgress) {
+      return;
+    }
     if (event.target instanceof HTMLInputElement) {
       return;
     }
@@ -147,6 +153,41 @@ function clearSlideAdvanceTimer() {
     window.clearTimeout(slideAdvanceTimer);
     slideAdvanceTimer = null;
   }
+}
+
+function beginSlideTransitionLock() {
+  isSlideTransitionInProgress = true;
+  refreshUi();
+  setSlideListNavigationDisabled(true);
+  clearTransitionUnlockTimer();
+  transitionUnlockTimer = window.setTimeout(() => {
+    if (!isSlideTransitionInProgress) {
+      return;
+    }
+    console.warn('Navigation wurde per Notfall-Timeout entsperrt.');
+    endSlideTransitionLock();
+  }, TRANSITION_UNLOCK_TIMEOUT_MS);
+}
+
+function endSlideTransitionLock() {
+  isSlideTransitionInProgress = false;
+  clearTransitionUnlockTimer();
+  refreshUi();
+  setSlideListNavigationDisabled(false);
+}
+
+function clearTransitionUnlockTimer() {
+  if (transitionUnlockTimer) {
+    window.clearTimeout(transitionUnlockTimer);
+    transitionUnlockTimer = null;
+  }
+}
+
+function setSlideListNavigationDisabled(disabled) {
+  const buttons = elements.slideList.querySelectorAll('button');
+  buttons.forEach((button) => {
+    button.disabled = disabled;
+  });
 }
 
 function getSlideShowtimeSeconds(slide) {
@@ -221,23 +262,31 @@ async function setDeck(deck) {
 }
 
 async function goToSlide(index, options = {}) {
+  if (isSlideTransitionInProgress) {
+    return;
+  }
   if (!state.deck) {
     return;
   }
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
-  const bellDurationSeconds = playSlideChangeCue();
-  await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
-  clearSlideAdvanceTimer();
-  state.currentIndex = index;
-  await audioController.stop();
-  hideTranscriptPanel();
-  refreshUi();
-  renderSlideList();
-  await renderCurrentSlide();
-  if (options.autoplay) {
-    await playCurrentSlide();
+  beginSlideTransitionLock();
+  try {
+    const bellDurationSeconds = playSlideChangeCue();
+    await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
+    clearSlideAdvanceTimer();
+    state.currentIndex = index;
+    await audioController.stop();
+    hideTranscriptPanel();
+    refreshUi();
+    renderSlideList();
+    await renderCurrentSlide();
+    if (options.autoplay) {
+      await playCurrentSlide();
+    }
+  } finally {
+    endSlideTransitionLock();
   }
 }
 
@@ -354,6 +403,9 @@ async function hydrateAsyncAssets() {
 }
 
 async function playCurrentSlide() {
+  if (isSlideTransitionInProgress) {
+    return;
+  }
   const slide = state.deck?.slides[state.currentIndex];
   if (!slide) {
     return;
@@ -382,6 +434,7 @@ function renderSlideList() {
     if (index === state.currentIndex) {
       button.classList.add('active');
     }
+    button.disabled = isSlideTransitionInProgress;
     button.addEventListener('click', () => {
       void goToSlide(index);
     });
@@ -401,7 +454,7 @@ function refreshUi() {
   elements.gotoInput.value = slideCount > 0 ? String(state.currentIndex + 1) : '1';
   elements.autoplayNextCheckbox.checked = state.autoAdvance;
 
-  const disabled = !state.deck;
+  const disabled = !state.deck || isSlideTransitionInProgress;
   for (const button of [
     elements.firstBtn,
     elements.prevBtn,
@@ -415,6 +468,7 @@ function refreshUi() {
     button.disabled = disabled;
   }
 
+  elements.gotoInput.disabled = disabled;
   elements.transcriptToggleBtn.disabled = disabled;
 }
 
