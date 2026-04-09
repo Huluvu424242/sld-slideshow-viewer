@@ -283,7 +283,7 @@ async function goToSlide(index, options = {}) {
     renderSlideList();
     await renderCurrentSlide();
     if (options.autoplay) {
-      await playCurrentSlide();
+      await playCurrentSlide({ ignoreTransitionLock: true });
     }
   } finally {
     endSlideTransitionLock();
@@ -402,8 +402,8 @@ async function hydrateAsyncAssets() {
   }
 }
 
-async function playCurrentSlide() {
-  if (isSlideTransitionInProgress) {
+async function playCurrentSlide(options = {}) {
+  if (isSlideTransitionInProgress && !options.ignoreTransitionLock) {
     return;
   }
   const slide = state.deck?.slides[state.currentIndex];
