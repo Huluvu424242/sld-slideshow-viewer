@@ -5,6 +5,7 @@ import { loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote } from './lo
 
 const state = createInitialState();
 let slideAdvanceTimer = null;
+let slideChangeCueAudioContext = null;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -222,6 +223,7 @@ async function goToSlide(index, options = {}) {
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
+  playSlideChangeCue();
   clearSlideAdvanceTimer();
   state.currentIndex = index;
   await audioController.stop();
@@ -231,6 +233,43 @@ async function goToSlide(index, options = {}) {
   await renderCurrentSlide();
   if (options.autoplay) {
     await playCurrentSlide();
+  }
+}
+
+function playSlideChangeCue() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return;
+  }
+
+  try {
+    if (!slideChangeCueAudioContext) {
+      slideChangeCueAudioContext = new AudioContextClass();
+    }
+    const context = slideChangeCueAudioContext;
+    if (context.state === 'suspended') {
+      context.resume().catch(() => {});
+    }
+
+    const now = context.currentTime;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, now);
+    oscillator.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.02, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.2);
+  } catch (error) {
+    console.debug('Slide-Change-Cue konnte nicht abgespielt werden.', error);
   }
 }
 
