@@ -225,6 +225,7 @@ async function goToSlide(index, options = {}) {
   clearSlideAdvanceTimer();
   state.currentIndex = index;
   await audioController.stop();
+  hideTranscriptPanel();
   refreshUi();
   renderSlideList();
   await renderCurrentSlide();
