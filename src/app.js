@@ -307,6 +307,7 @@ function renderSlideList() {
   slides.forEach((slide, index) => {
     const li = document.createElement('li');
     const button = document.createElement('button');
+    button.id=`btnFolie${index}`
     button.type = 'button';
     const slideLabel = slide.title || slide.id || slide.content;
     button.textContent = ` ${slideLabel}`;
