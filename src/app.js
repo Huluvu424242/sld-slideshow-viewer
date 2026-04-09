@@ -6,9 +6,10 @@ import { loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote } from './lo
 const state = createInitialState();
 let slideAdvanceTimer = null;
 let slideChangeCueAudioContext = null;
-const SLIDE_CHANGE_BELL_VOLUME = 0.03;
+const SLIDE_CHANGE_BELL_VOLUME = 5.0;
 const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.045;
 const SLIDE_CHANGE_BELL_DECAY_SECONDS = 1.8;
+const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 2;
 
 const elements = {
   deckTitle: document.querySelector('#deck-title'),
@@ -226,7 +227,8 @@ async function goToSlide(index, options = {}) {
   if (index < 0 || index >= state.deck.slides.length) {
     return;
   }
-  playSlideChangeCue();
+  const bellDurationSeconds = playSlideChangeCue();
+  await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
   clearSlideAdvanceTimer();
   state.currentIndex = index;
   await audioController.stop();
@@ -242,7 +244,7 @@ async function goToSlide(index, options = {}) {
 function playSlideChangeCue() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) {
-    return;
+    return 0;
   }
 
   try {
@@ -288,9 +290,17 @@ function playSlideChangeCue() {
       oscillator.start(now);
       oscillator.stop(releaseEnd + 0.05);
     });
+    return SLIDE_CHANGE_BELL_STRIKE_SECONDS + SLIDE_CHANGE_BELL_DECAY_SECONDS;
   } catch (error) {
     console.debug('Slide-Change-Cue konnte nicht abgespielt werden.', error);
+    return 0;
   }
+}
+
+function delay(durationMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
 }
 
 async function renderCurrentSlide() {
