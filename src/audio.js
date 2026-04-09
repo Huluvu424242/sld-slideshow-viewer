@@ -7,14 +7,18 @@ export class AudioController {
     this.synthesis = window.speechSynthesis;
     this.currentMode = 'stopped';
     this.currentSlideKey = null;
+    this.playbackSession = 0;
   }
 
   async play(slide, assetLoader) {
     await this.stop();
+    const playbackSession = this.playbackSession;
 
     if (!slide.audio) {
       this.updateStatus('Kein Audio');
-      this.onEnded?.();
+      if (this.isCurrentPlaybackSession(playbackSession)) {
+        this.onEnded?.();
+      }
       return;
     }
 
@@ -24,22 +28,22 @@ export class AudioController {
     try {
       if (isPlayableAudioType(audioType)) {
         const resolvedUrl = await assetLoader.resolvePlayableUrl(slide.audio.src);
-        await this.playAudioElement(resolvedUrl);
+        await this.playAudioElement(resolvedUrl, playbackSession);
         return;
       }
 
       if (audioType === 'txt' || audioType === 'ssml') {
         const text = await assetLoader.loadText(slide.audio.src);
-        this.playSpeech(text, slide.audio, audioType === 'ssml');
+        this.playSpeech(text, slide.audio, audioType === 'ssml', playbackSession);
         return;
       }
 
       this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType || 'unbekannt'}`);
-      await this.playFallbackMessage(slide.audio);
+      await this.playFallbackMessage(slide.audio, playbackSession);
     } catch (error) {
       console.warn('Audio konnte nicht geladen werden. Fallback wird gesprochen.', error);
       this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
-      await this.playFallbackMessage(slide.audio);
+      await this.playFallbackMessage(slide.audio, playbackSession);
     }
   }
 
@@ -70,6 +74,8 @@ export class AudioController {
   }
 
   async stop() {
+    this.playbackSession += 1;
+
     if (this.audio) {
       this.audio.pause();
       this.audio.currentTime = 0;
@@ -82,35 +88,47 @@ export class AudioController {
     this.updateStatus('Gestoppt');
   }
 
-  async playAudioElement(url) {
+  async playAudioElement(url, playbackSession) {
     const audio = new Audio(url);
     this.audio = audio;
     audio.addEventListener('ended', () => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
       this.updateStatus('Beendet');
       this.onEnded?.();
     }, { once: true });
     audio.addEventListener('error', async () => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
       console.warn('Audio-Datei konnte nicht abgespielt werden. Fallback wird gesprochen.', url);
       this.audio = null;
       this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
-      await this.playFallbackMessage();
+      await this.playFallbackMessage({}, playbackSession);
     }, { once: true });
     audio.addEventListener('pause', () => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
       if (!audio.ended) {
         this.updateStatus('Pausiert');
       }
     });
     audio.addEventListener('play', () => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
       this.updateStatus('Spielt');
     });
     await audio.play();
   }
 
-  async playFallbackMessage(audioConfig = {}) {
-    this.playSpeech(this.fallbackMessage, audioConfig, false);
+  async playFallbackMessage(audioConfig = {}, playbackSession) {
+    this.playSpeech(this.fallbackMessage, audioConfig, false, playbackSession);
   }
 
-  playSpeech(text, audioConfig = {}, isSsml) {
+  playSpeech(text, audioConfig = {}, isSsml, playbackSession) {
     const utterance = new SpeechSynthesisUtterance();
     utterance.text = isSsml ? ssmlToSpeechText(text) : text;
     utterance.lang = audioConfig.lang || 'de-DE';
@@ -127,12 +145,23 @@ export class AudioController {
     if (typeof audioConfig.pitch === 'number') utterance.pitch = audioConfig.pitch;
     if (typeof audioConfig.volume === 'number') utterance.volume = audioConfig.volume;
 
-    utterance.onstart = () => this.updateStatus(isSsml ? 'Spielt (SSML)' : 'Spielt (TTS)');
+    utterance.onstart = () => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
+      this.updateStatus(isSsml ? 'Spielt (SSML)' : 'Spielt (TTS)');
+    };
     utterance.onend = () => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
       this.updateStatus('Beendet');
       this.onEnded?.();
     };
     utterance.onerror = (event) => {
+      if (!this.isCurrentPlaybackSession(playbackSession)) {
+        return;
+      }
       this.updateStatus(`TTS-Fehler: ${event.error || 'unbekannt'}`);
       this.onEnded?.();
     };
@@ -143,6 +172,10 @@ export class AudioController {
   updateStatus(status) {
     this.currentMode = status;
     this.onStatusChange?.(status);
+  }
+
+  isCurrentPlaybackSession(playbackSession) {
+    return playbackSession === this.playbackSession;
   }
 }
 
