@@ -593,7 +593,7 @@ function checkAudioSupport() {
     if (!audioController.isSpeechReallyUsable()) {
         showError(`
         ⚠️ Sprachwiedergabe wird von diesem Browser nicht unterstützt.
-        👉 Bitte öffne die Slideshow im Chrome Browser.
+        👉 Bitte nutze Audio-Dateien (mp3/ogg/...) statt TTS (txt/ssml), oder verwende ein Gerät mit funktionierender SpeechSynthesis.
         `);
     }
 }
