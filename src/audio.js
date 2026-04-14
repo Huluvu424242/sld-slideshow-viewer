@@ -8,6 +8,7 @@ export class AudioController {
         this.currentMode = 'stopped';
         this.currentSlideKey = null;
         this.playbackSession = 0;
+        this.unavailableAudioFallbackTimer = null;
     }
 
     isSpeechSupported() {
@@ -48,22 +49,22 @@ export class AudioController {
         try {
             if (isPlayableAudioType(audioType)) {
                 const resolvedUrl = await assetLoader.resolvePlayableUrl(slide.audio.src);
-                await this.playAudioElement(resolvedUrl, playbackSession);
+                await this.playAudioElement(resolvedUrl, playbackSession, slide);
                 return;
             }
 
             if (audioType === 'txt' || audioType === 'ssml') {
                 const text = await assetLoader.loadText(slide.audio.src);
-                this.playSpeech(text, slide.audio, audioType === 'ssml', playbackSession);
+                this.playSpeech(text, slide.audio, audioType === 'ssml', playbackSession, slide);
                 return;
             }
 
             this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType || 'unbekannt'}`);
-            await this.playFallbackMessage(slide.audio, playbackSession);
+            await this.playFallbackMessage(slide, slide.audio, playbackSession);
         } catch (error) {
             console.warn('Audio konnte nicht geladen werden. Fallback wird gesprochen.', error);
             this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
-            await this.playFallbackMessage(slide.audio, playbackSession);
+            await this.playFallbackMessage(slide, slide.audio, playbackSession);
         }
     }
 
@@ -95,6 +96,7 @@ export class AudioController {
 
     async stop() {
         this.playbackSession += 1;
+        this.clearUnavailableAudioFallbackTimer();
 
         if (this.audio) {
             this.audio.pause();
@@ -111,7 +113,7 @@ export class AudioController {
         this.updateStatus('Gestoppt');
     }
 
-    async playAudioElement(url, playbackSession) {
+    async playAudioElement(url, playbackSession, slide = {}) {
         const audio = new Audio(url);
         this.audio = audio;
         audio.addEventListener('ended', () => {
@@ -128,7 +130,7 @@ export class AudioController {
             console.warn('Audio-Datei konnte nicht abgespielt werden. Fallback wird gesprochen.', url);
             this.audio = null;
             this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
-            await this.playFallbackMessage({}, playbackSession);
+            await this.playFallbackMessage(slide, {}, playbackSession);
         }, {once: true});
         audio.addEventListener('pause', () => {
             if (!this.isCurrentPlaybackSession(playbackSession)) {
@@ -147,23 +149,19 @@ export class AudioController {
         await audio.play();
     }
 
-    async playFallbackMessage(audioConfig = {}, playbackSession) {
+    async playFallbackMessage(slide = {}, audioConfig = {}, playbackSession) {
         if (!this.isSpeechReallyUsable()) {
             this.updateStatus('Audio nicht verfügbar');
-            if (this.isCurrentPlaybackSession(playbackSession)) {
-                this.onEnded?.();
-            }
+            this.scheduleFallbackAdvance(slide, playbackSession);
             return;
         }
-        this.playSpeech(this.fallbackMessage, audioConfig, false, playbackSession);
+        this.playSpeech(this.fallbackMessage, audioConfig, false, playbackSession, slide);
     }
 
-    playSpeech(text, audioConfig = {}, isSsml, playbackSession) {
+    playSpeech(text, audioConfig = {}, isSsml, playbackSession, slide = {}) {
         if (!this.isSpeechReallyUsable()) {
             this.updateStatus('Sprachausgabe nicht unterstützt');
-            if (this.isCurrentPlaybackSession(playbackSession)) {
-                this.onEnded?.();
-            }
+            this.scheduleFallbackAdvance(slide, playbackSession);
             return;
         }
 
@@ -207,6 +205,26 @@ export class AudioController {
         this.synthesis.speak(utterance);
     }
 
+    scheduleFallbackAdvance(slide = {}, playbackSession) {
+        this.clearUnavailableAudioFallbackTimer();
+        const fallbackSeconds = getUnavailableAudioShowtimeSeconds(slide);
+        this.unavailableAudioFallbackTimer = window.setTimeout(() => {
+            this.unavailableAudioFallbackTimer = null;
+            if (!this.isCurrentPlaybackSession(playbackSession)) {
+                return;
+            }
+            this.onEnded?.();
+        }, fallbackSeconds * 1000);
+    }
+
+    clearUnavailableAudioFallbackTimer() {
+        if (!this.unavailableAudioFallbackTimer) {
+            return;
+        }
+        window.clearTimeout(this.unavailableAudioFallbackTimer);
+        this.unavailableAudioFallbackTimer = null;
+    }
+
     updateStatus(status) {
         this.currentMode = status;
         this.onStatusChange?.(status);
@@ -236,6 +254,16 @@ function inferAudioType(audioConfig = {}) {
         ?.toLowerCase();
 
     return extension || '';
+}
+
+const DEFAULT_UNAVAILABLE_AUDIO_SHOWTIME_SECONDS = 10;
+
+function getUnavailableAudioShowtimeSeconds(slide = {}) {
+    const showtime = Number(slide.showtime);
+    if (Number.isFinite(showtime) && showtime > 0) {
+        return showtime;
+    }
+    return DEFAULT_UNAVAILABLE_AUDIO_SHOWTIME_SECONDS;
 }
 
 function ssmlToSpeechText(ssml) {
