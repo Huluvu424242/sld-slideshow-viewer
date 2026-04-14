@@ -496,7 +496,7 @@ function setTranscriptPanelVisibility(isVisible) {
 function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
-    window.scrollTo(0, 0);
+    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
 function clearTranscriptPanelContent() {
