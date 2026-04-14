@@ -74,7 +74,7 @@ export class AudioController {
             return;
         }
 
-        if (this.synthesis.speaking && !this.synthesis.paused) {
+        if (this.synthesis?.speaking && !this.synthesis.paused) {
             this.synthesis.pause();
             this.updateStatus('Pausiert');
         }
@@ -87,7 +87,7 @@ export class AudioController {
             return;
         }
 
-        if (this.synthesis.paused) {
+        if (this.synthesis?.paused) {
             this.synthesis.resume();
             this.updateStatus('Spielt');
         }
@@ -148,10 +148,25 @@ export class AudioController {
     }
 
     async playFallbackMessage(audioConfig = {}, playbackSession) {
+        if (!this.isSpeechReallyUsable()) {
+            this.updateStatus('Audio nicht verfügbar');
+            if (this.isCurrentPlaybackSession(playbackSession)) {
+                this.onEnded?.();
+            }
+            return;
+        }
         this.playSpeech(this.fallbackMessage, audioConfig, false, playbackSession);
     }
 
     playSpeech(text, audioConfig = {}, isSsml, playbackSession) {
+        if (!this.isSpeechReallyUsable()) {
+            this.updateStatus('Sprachausgabe nicht unterstützt');
+            if (this.isCurrentPlaybackSession(playbackSession)) {
+                this.onEnded?.();
+            }
+            return;
+        }
+
         const utterance = new SpeechSynthesisUtterance();
         utterance.text = isSsml ? ssmlToSpeechText(text) : text;
         utterance.lang = audioConfig.lang || 'de-DE';
