@@ -53,6 +53,10 @@ Wird die Anwendung mit `?url=...` aufgerufen, wird diese URL automatisch zum Lad
 Beispiele:
 
 ```text
+https://huluvu424242.github.io/sld-slideshow-viewer/?url=https://huluvu424242.github.io/foile-pile/explainations/mesh/meshnetze/slides.json
+```
+
+```text
 https://<deine-pages-url>/index.html?url=https://example.org/slides/slides.json
 ```
 
