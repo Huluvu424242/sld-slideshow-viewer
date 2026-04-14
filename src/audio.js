@@ -4,7 +4,7 @@ export class AudioController {
     this.onEnded = onEnded;
     this.fallbackMessage = fallbackMessage;
     this.audio = null;
-    this.synthesis = window.speechSynthesis;
+    this.synthesis = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
     this.currentMode = 'stopped';
     this.currentSlideKey = null;
     this.playbackSession = 0;
@@ -83,7 +83,10 @@ export class AudioController {
       this.audio = null;
     }
 
+  if (this.synthesis && typeof this.synthesis.cancel === 'function') {
     this.synthesis.cancel();
+  }
+
     this.currentSlideKey = null;
     this.updateStatus('Gestoppt');
   }
