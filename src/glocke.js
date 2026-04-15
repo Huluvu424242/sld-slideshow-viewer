@@ -23,7 +23,7 @@
  *   detune: 6
  * });
  */
-const HELLE_GLOCKE = {
+export const helleGlocke = {
   pitchHz: 520,
   loudness: 0.8,
   duration: 3.5,
@@ -34,7 +34,7 @@ const HELLE_GLOCKE = {
   detune: 12
 };
 
-const GROSSE_GLOCKE = {
+export const grosseGlocke = {
   pitchHz: 220,
   loudness: 0.9,
   duration: 6,
@@ -45,7 +45,7 @@ const GROSSE_GLOCKE = {
   detune: 5
 };
 
-const KLEINE_HELLE_GLOCKE = {
+export const kleineGlocke = {
   pitchHz: 880,
   loudness: 0.5,
   duration: 2.5,
@@ -218,6 +218,91 @@ async function playBellTone(options = {}) {
   });
 }
 
-const helleGlocke = () => playBellTone(HELLE_GLOCKE);
-const grosseGlocke = () => playBellTone(GROSSE_GLOCKE);
-const kleineGlocke = () => playBellTone(KLEINE_HELLE_GLOCKE);
+export function playGlockeTone(context, preset = helleGlocke, overrides = {}) {
+  const merged = { ...preset, ...overrides };
+  const pitchHz = clamp(merged.pitchHz ?? 440, 50, 4000);
+  const loudness = clamp(merged.loudness ?? 0.7, 0.0001, 1);
+  const duration = clamp(merged.duration ?? 4, 0.1, 20);
+  const fullness = clamp(merged.fullness ?? 0.7, 0, 1);
+  const brightness = clamp(merged.brightness ?? 0.5, 0, 1);
+  const attack = clamp(merged.attack ?? 0.01, 0.001, 0.15);
+  const overtones = clamp(merged.overtones ?? 0.7, 0, 1);
+  const detune = clamp(merged.detune ?? 4, 0, 50);
+
+  const now = context.currentTime;
+  const endTime = now + duration + 0.5;
+
+  const masterGain = context.createGain();
+  const lowpass = context.createBiquadFilter();
+  const highpass = context.createBiquadFilter();
+
+  highpass.type = "highpass";
+  highpass.frequency.value = 80;
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = 1200 + brightness * 6000;
+  lowpass.Q.value = 0.7;
+
+  masterGain.gain.setValueAtTime(0.0001, now);
+  masterGain.gain.exponentialRampToValueAtTime(loudness, now + attack);
+  masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  lowpass.connect(highpass);
+  highpass.connect(masterGain);
+  masterGain.connect(context.destination);
+
+  const partials = [
+    { ratio: 0.50, gain: 0.18 + fullness * 0.10, decay: 1.20 },
+    { ratio: 1.00, gain: 0.30 + fullness * 0.15, decay: 1.00 },
+    { ratio: 2.00, gain: 0.22 + overtones * 0.18, decay: 0.75 },
+    { ratio: 2.40, gain: 0.10 + brightness * 0.12, decay: 0.60 },
+    { ratio: 3.00, gain: 0.08 + overtones * 0.10, decay: 0.50 },
+    { ratio: 4.20, gain: 0.05 + brightness * 0.10, decay: 0.40 },
+    { ratio: 5.40, gain: 0.03 + brightness * 0.08, decay: 0.30 }
+  ];
+
+  for (const partial of partials) {
+    const oscA = context.createOscillator();
+    const oscB = context.createOscillator();
+    const partialGain = context.createGain();
+
+    oscA.type = "sine";
+    oscB.type = brightness > 0.65 ? "triangle" : "sine";
+    const partialFrequency = pitchHz * partial.ratio;
+    oscA.frequency.setValueAtTime(partialFrequency, now);
+    oscB.frequency.setValueAtTime(partialFrequency, now);
+    oscA.detune.setValueAtTime(-detune / 2, now);
+    oscB.detune.setValueAtTime(detune / 2, now);
+
+    const startGain = Math.max(0.0001, partial.gain * loudness);
+    const partialDuration = Math.max(0.08, duration * partial.decay);
+    partialGain.gain.setValueAtTime(0.0001, now);
+    partialGain.gain.exponentialRampToValueAtTime(startGain, now + attack);
+    partialGain.gain.exponentialRampToValueAtTime(0.0001, now + partialDuration);
+
+    oscA.connect(partialGain);
+    oscB.connect(partialGain);
+    partialGain.connect(lowpass);
+    oscA.start(now);
+    oscB.start(now);
+    oscA.stop(endTime);
+    oscB.stop(endTime);
+  }
+
+  const strikeOsc = context.createOscillator();
+  const strikeGain = context.createGain();
+  const strikeFilter = context.createBiquadFilter();
+  strikeOsc.type = "triangle";
+  strikeOsc.frequency.setValueAtTime(1200 + brightness * 1800, now);
+  strikeFilter.type = "bandpass";
+  strikeFilter.frequency.value = 1800 + brightness * 2200;
+  strikeFilter.Q.value = 3;
+  strikeGain.gain.setValueAtTime(0.0001, now);
+  strikeGain.gain.exponentialRampToValueAtTime(0.15 + brightness * 0.2, now + 0.002);
+  strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+  strikeOsc.connect(strikeFilter);
+  strikeFilter.connect(strikeGain);
+  strikeGain.connect(lowpass);
+  strikeOsc.start(now);
+  strikeOsc.stop(now + 0.06);
+
+  return duration;
+}
