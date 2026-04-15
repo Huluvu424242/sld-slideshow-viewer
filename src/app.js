@@ -401,8 +401,10 @@ async function goToSlide(index, options = {}) {
         clearSlideAdvanceTimer();
         resetTapState();
         await audioController.stop();
-        const bellDurationSeconds = playSlideChangeCue();
-        await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
+        if (options.autoplay) {
+            const bellDurationSeconds = playSlideChangeCue();
+            await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
+        }
         state.currentIndex = index;
         hideTranscriptPanel();
         refreshUi();
