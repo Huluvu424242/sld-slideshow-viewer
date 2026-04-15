@@ -11,13 +11,15 @@ const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.025;
 const SLIDE_CHANGE_BELL_DECAY_SECONDS = 3.2;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
-const SWIPE_MIN_HORIZONTAL_DISTANCE_PX = 60;
-const SWIPE_MAX_VERTICAL_DRIFT_PX = 50;
+const SWIPE_MIN_HORIZONTAL_DISTANCE_PX = 45;
+const SWIPE_MAX_VERTICAL_DRIFT_PX = 120;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
 const swipeState = {
     startX: 0,
     startY: 0,
+    lastX: 0,
+    lastY: 0,
     tracking: false,
 };
 
@@ -154,11 +156,12 @@ function bindEvents() {
         }
     });
 
-    document.addEventListener('touchstart', handleTouchStart, {passive: true});
-    document.addEventListener('touchend', (event) => {
+    elements.slideStage.addEventListener('touchstart', handleTouchStart, {passive: true});
+    elements.slideStage.addEventListener('touchmove', handleTouchMove, {passive: true});
+    elements.slideStage.addEventListener('touchend', (event) => {
         void handleTouchEnd(event);
     }, {passive: true});
-    document.addEventListener('touchcancel', resetSwipeState, {passive: true});
+    elements.slideStage.addEventListener('touchcancel', resetSwipeState, {passive: true});
 }
 
 function handleTouchStart(event) {
@@ -166,10 +169,25 @@ function handleTouchStart(event) {
         resetSwipeState();
         return;
     }
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+        resetSwipeState();
+        return;
+    }
     const touch = event.touches[0];
     swipeState.startX = touch.clientX;
     swipeState.startY = touch.clientY;
+    swipeState.lastX = touch.clientX;
+    swipeState.lastY = touch.clientY;
     swipeState.tracking = true;
+}
+
+function handleTouchMove(event) {
+    if (!swipeState.tracking || event.touches.length !== 1) {
+        return;
+    }
+    const touch = event.touches[0];
+    swipeState.lastX = touch.clientX;
+    swipeState.lastY = touch.clientY;
 }
 
 async function handleTouchEnd(event) {
@@ -179,13 +197,10 @@ async function handleTouchEnd(event) {
     }
 
     const changedTouch = event.changedTouches?.[0];
-    if (!changedTouch) {
-        resetSwipeState();
-        return;
-    }
-
-    const horizontalDistance = changedTouch.clientX - swipeState.startX;
-    const verticalDistance = changedTouch.clientY - swipeState.startY;
+    const endX = changedTouch?.clientX ?? swipeState.lastX;
+    const endY = changedTouch?.clientY ?? swipeState.lastY;
+    const horizontalDistance = endX - swipeState.startX;
+    const verticalDistance = endY - swipeState.startY;
     const isHorizontalSwipe = Math.abs(horizontalDistance) >= SWIPE_MIN_HORIZONTAL_DISTANCE_PX
         && Math.abs(verticalDistance) <= SWIPE_MAX_VERTICAL_DRIFT_PX
         && Math.abs(horizontalDistance) > Math.abs(verticalDistance);
@@ -207,6 +222,8 @@ async function handleTouchEnd(event) {
 function resetSwipeState() {
     swipeState.startX = 0;
     swipeState.startY = 0;
+    swipeState.lastX = 0;
+    swipeState.lastY = 0;
     swipeState.tracking = false;
 }
 
