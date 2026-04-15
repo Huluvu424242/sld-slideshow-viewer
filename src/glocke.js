@@ -23,6 +23,38 @@
  *   detune: 6
  * });
  */
+const HELLE_GLOCKE = {
+  pitchHz: 520,
+  loudness: 0.8,
+  duration: 3.5,
+  fullness: 0.5,
+  brightness: 1.0,
+  attack: 0.003,
+  overtones: 1.0,
+  detune: 12
+};
+
+const GROSSE_GLOCKE = {
+  pitchHz: 220,
+  loudness: 0.9,
+  duration: 6,
+  fullness: 0.95,
+  brightness: 0.35,
+  attack: 0.02,
+  overtones: 0.6,
+  detune: 5
+};
+
+const KLEINE_HELLE_GLOCKE = {
+  pitchHz: 880,
+  loudness: 0.5,
+  duration: 2.5,
+  fullness: 0.3,
+  brightness: 0.8,
+  attack: 0.005,
+  overtones: 0.7,
+  detune: 3
+};
 
 let bellAudioContext;
 
@@ -185,3 +217,7 @@ async function playBellTone(options = {}) {
     setTimeout(resolve, (duration + 0.6) * 1000);
   });
 }
+
+const helleGlocke = () => playBellTone(HELLE_GLOCKE);
+const grosseGlocke = () => playBellTone(GROSSE_GLOCKE);
+const kleineGlocke = () => playBellTone(KLEINE_HELLE_GLOCKE);
