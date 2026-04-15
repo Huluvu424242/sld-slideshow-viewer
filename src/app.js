@@ -80,6 +80,16 @@ const audioController = new AudioController({
     async onEnded() {
         await handleSlidePlaybackCompleted();
     },
+    onFallbackTimerStart(seconds) {
+        if (!state.autoAdvance) {
+            return;
+        }
+        setPlayButtonActive(true);
+        startShowtimeCountdown(null, {seconds});
+    },
+    onAudioIssue(message) {
+        showError(`⚠️ ${message}`);
+    },
 });
 
 bindEvents();
@@ -363,9 +373,12 @@ function renderShowtimeCountdown(value) {
     elements.showtimeCountdown.classList.toggle('is-danger', safeValue <= 3);
 }
 
-function startShowtimeCountdown(slide) {
+function startShowtimeCountdown(slide, options = {}) {
     clearShowtimeCountdown();
-    if (!slide) {
+    const overrideSeconds = Number(options.seconds);
+    const hasOverride = Number.isFinite(overrideSeconds) && overrideSeconds > 0;
+
+    if (!slide && !hasOverride) {
         if (elements.showtimeCountdown) {
             elements.showtimeCountdown.textContent = '–';
             elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
@@ -373,7 +386,7 @@ function startShowtimeCountdown(slide) {
         return;
     }
 
-    nonAudioPlaybackRemainingSeconds = getSlideShowtimeSeconds(slide);
+    nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -811,6 +824,7 @@ function checkAudioSupport() {
         showError(`
         ⚠️ Sprachwiedergabe wird von diesem Browser nicht unterstützt.
         👉 Bitte nutze ein Gerät mit funktionierender SpeechSynthesis, häufig funzt ein Chrome Browser.
+        ℹ️ Falls eine Folie Audio per TTS benötigt, wird stattdessen eine Fallback-Showtime von 10 Sekunden verwendet.
         `);
     }
 }
