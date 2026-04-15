@@ -178,6 +178,21 @@ button:disabled {
     flex-wrap: nowrap;
 }
 
+.showtime-countdown {
+    min-width: 2ch;
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.showtime-countdown.is-safe {
+    color: #6ee7a8;
+}
+
+.showtime-countdown.is-danger {
+    color: #ff7b72;
+}
+
 input[type="url"],
 input[type="number"] {
     padding: 10px 12px;
