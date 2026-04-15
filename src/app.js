@@ -336,7 +336,7 @@ function renderShowtimeCountdown(value) {
 
 function startShowtimeCountdown(slide) {
     clearShowtimeCountdown();
-    if (!slide || !Number.isFinite(Number(slide.showtime)) || Number(slide.showtime) <= 0) {
+    if (!slide) {
         if (elements.showtimeCountdown) {
             elements.showtimeCountdown.textContent = '–';
             elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
