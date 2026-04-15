@@ -679,6 +679,7 @@ function renderSlideList() {
 
 function refreshUi() {
     const slideCount = state.deck?.slides.length ?? 0;
+    const currentSlide = state.deck?.slides[state.currentIndex];
     elements.deckTitle.textContent = state.deck?.title ?? '–';
     elements.sourceKind.textContent = state.sourceKind ?? '–';
     elements.slideCounter.textContent = slideCount > 0 ? `${state.currentIndex + 1} / ${slideCount}` : '0 / 0';
@@ -701,7 +702,12 @@ function refreshUi() {
     }
 
     elements.gotoInput.disabled = disabled;
-    elements.transcriptToggleBtn.disabled = disabled;
+    elements.transcriptToggleBtn.disabled = disabled || !hasSlideAudioSource(currentSlide);
+}
+
+function hasSlideAudioSource(slide) {
+    const source = slide?.audio?.src;
+    return typeof source === 'string' && source.trim().length > 0;
 }
 
 async function toggleTranscriptPanel() {
