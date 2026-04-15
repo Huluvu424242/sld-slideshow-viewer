@@ -29,6 +29,7 @@ let slideAdvanceTimer = null;
 let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
 let nonAudioPlaybackRemainingSeconds = null;
+let slideChangeCueIndicatorToken = 0;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
@@ -373,16 +374,42 @@ function renderShowtimeCountdown(value) {
     elements.showtimeCountdown.classList.toggle('is-danger', safeValue <= 3);
 }
 
+function renderShowtimeDash() {
+    if (!elements.showtimeCountdown) {
+        return;
+    }
+    elements.showtimeCountdown.textContent = '–';
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+}
+
+function showSlideChangeCueIndicator() {
+    if (!elements.showtimeCountdown) {
+        return 0;
+    }
+    slideChangeCueIndicatorToken += 1;
+    elements.showtimeCountdown.textContent = '🔔';
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+    return slideChangeCueIndicatorToken;
+}
+
+function restoreShowtimeCountdownAfterCue(token) {
+    if (!elements.showtimeCountdown || token !== slideChangeCueIndicatorToken) {
+        return;
+    }
+    if (nonAudioPlaybackRemainingSeconds !== null) {
+        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
+        return;
+    }
+    renderShowtimeDash();
+}
+
 function startShowtimeCountdown(slide, options = {}) {
     clearShowtimeCountdown();
     const overrideSeconds = Number(options.seconds);
     const hasOverride = Number.isFinite(overrideSeconds) && overrideSeconds > 0;
 
     if (!slide && !hasOverride) {
-        if (elements.showtimeCountdown) {
-            elements.showtimeCountdown.textContent = '–';
-            elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
-        }
+        renderShowtimeDash();
         return;
     }
 
@@ -463,7 +490,7 @@ async function handleSlidePlaybackCompleted() {
         return;
     }
 
-    playSlideChangeCue();
+    playSlideChangeCueWithIndicator();
 }
 
 async function initializeFromQueryParameters() {
@@ -513,7 +540,7 @@ async function goToSlide(index, options = {}) {
         resetTapState();
         await audioController.stop();
         if (options.autoplay) {
-            const bellDurationSeconds = playSlideChangeCue();
+            const bellDurationSeconds = playSlideChangeCueWithIndicator();
             await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
         }
         state.currentIndex = index;
@@ -556,6 +583,20 @@ function playSlideChangeCue() {
     }
 }
 
+function playSlideChangeCueWithIndicator() {
+    const bellDurationSeconds = playSlideChangeCue();
+    if (bellDurationSeconds <= 0) {
+        return bellDurationSeconds;
+    }
+
+    const indicatorToken = showSlideChangeCueIndicator();
+    window.setTimeout(() => {
+        restoreShowtimeCountdownAfterCue(indicatorToken);
+    }, bellDurationSeconds * 1000);
+
+    return bellDurationSeconds;
+}
+
 function delay(durationMs) {
     return new Promise((resolve) => {
         window.setTimeout(resolve, durationMs);
@@ -571,8 +612,7 @@ async function renderCurrentSlide() {
     if (!slide) {
         elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
         if (elements.showtimeCountdown) {
-            elements.showtimeCountdown.textContent = '–';
-            elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+            renderShowtimeDash();
         }
         hideTranscriptPanel();
         return;
@@ -605,8 +645,7 @@ async function renderCurrentSlide() {
     }
 
     if (elements.showtimeCountdown) {
-        elements.showtimeCountdown.textContent = '–';
-        elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+        renderShowtimeDash();
     }
 
     if (isTranscriptPanelOpen()) {
