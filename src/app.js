@@ -28,6 +28,7 @@ const state = createInitialState();
 let slideAdvanceTimer = null;
 let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
+let nonAudioPlaybackRemainingSeconds = null;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
@@ -137,14 +138,21 @@ function bindEvents() {
     });
     elements.pauseBtn.addEventListener('click', async () => {
         clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+        setPlayButtonActive(false);
         await audioController.pause();
     });
     elements.stopBtn.addEventListener('click', async () => {
         clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+        setPlayButtonActive(false);
         await audioController.stop();
     });
     elements.autoplayNextCheckbox.addEventListener('change', () => {
         state.autoAdvance = elements.autoplayNextCheckbox.checked;
+        syncAutoSlideChangeForCurrentSlide();
     });
     elements.transcriptToggleBtn.addEventListener('click', async () => {
         await toggleTranscriptPanel();
@@ -271,6 +279,11 @@ function clearShowtimeCountdown() {
     }
 }
 
+function setPlayButtonActive(active) {
+    elements.playBtn?.classList.toggle('is-active', active);
+    elements.playBtn?.setAttribute('aria-pressed', active ? 'true' : 'false');
+}
+
 function resetTapState() {
     tapState.lastTapTimestamp = 0;
     tapState.lastTapX = 0;
@@ -344,13 +357,17 @@ function startShowtimeCountdown(slide) {
         return;
     }
 
-    let remainingSeconds = getSlideShowtimeSeconds(slide);
-    renderShowtimeCountdown(remainingSeconds);
+    nonAudioPlaybackRemainingSeconds = getSlideShowtimeSeconds(slide);
+    renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
-        remainingSeconds -= 1;
-        renderShowtimeCountdown(remainingSeconds);
-        if (remainingSeconds <= 0) {
+        if (nonAudioPlaybackRemainingSeconds === null) {
+            return;
+        }
+        nonAudioPlaybackRemainingSeconds = Math.max(0, nonAudioPlaybackRemainingSeconds - 1);
+        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
+        if (nonAudioPlaybackRemainingSeconds <= 0) {
             clearShowtimeCountdown();
+            setPlayButtonActive(false);
         }
     }, 1000);
 }
@@ -385,7 +402,29 @@ function scheduleAutoAdvanceForShowtime(slide) {
     return true;
 }
 
+function syncAutoSlideChangeForCurrentSlide() {
+    const slide = state.deck?.slides[state.currentIndex];
+    if (!slide || slide.audio) {
+        nonAudioPlaybackRemainingSeconds = null;
+        clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        setPlayButtonActive(false);
+        return;
+    }
+
+    if (!state.autoAdvance) {
+        clearSlideAdvanceTimer();
+        setPlayButtonActive(false);
+        return;
+    }
+
+    setPlayButtonActive(true);
+    startShowtimeCountdown(slide);
+    scheduleAutoAdvanceForShowtime(slide);
+}
+
 async function handleSlidePlaybackCompleted() {
+    setPlayButtonActive(false);
     if (!state.autoAdvance || !state.deck || isSlideTransitionInProgress) {
         return;
     }
@@ -497,6 +536,8 @@ function delay(durationMs) {
 async function renderCurrentSlide() {
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
+    nonAudioPlaybackRemainingSeconds = null;
+    setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
         elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
@@ -524,14 +565,19 @@ async function renderCurrentSlide() {
   `;
 
     await hydrateAsyncAssets();
-    startShowtimeCountdown(slide);
 
     if (!slide.audio) {
         updateSlideAudioStatus(slide);
+        syncAutoSlideChangeForCurrentSlide();
         if (isTranscriptPanelOpen()) {
             await renderTranscriptContent({keepOpen: true});
         }
         return;
+    }
+
+    if (elements.showtimeCountdown) {
+        elements.showtimeCountdown.textContent = '–';
+        elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
     }
 
     if (isTranscriptPanelOpen()) {
@@ -560,10 +606,19 @@ async function playCurrentSlide(options = {}) {
     }
     await withErrorHandling(async () => {
         if (!slide.audio) {
-            scheduleAutoAdvanceForShowtime(slide);
+            setPlayButtonActive(true);
+            startShowtimeCountdown(slide);
+            if (state.autoAdvance) {
+                scheduleAutoAdvanceForShowtime(slide);
+            } else {
+                clearSlideAdvanceTimer();
+            }
             return;
         }
         clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+        setPlayButtonActive(true);
         await audioController.play(slide, state.deck.assetLoader);
     });
 }
