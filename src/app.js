@@ -145,6 +145,7 @@ function bindEvents() {
     });
     elements.autoplayNextCheckbox.addEventListener('change', () => {
         state.autoAdvance = elements.autoplayNextCheckbox.checked;
+        syncAutoSlideChangeForCurrentSlide();
     });
     elements.transcriptToggleBtn.addEventListener('click', async () => {
         await toggleTranscriptPanel();
@@ -385,6 +386,16 @@ function scheduleAutoAdvanceForShowtime(slide) {
     return true;
 }
 
+function syncAutoSlideChangeForCurrentSlide() {
+    const slide = state.deck?.slides[state.currentIndex];
+    if (!slide || slide.audio) {
+        clearSlideAdvanceTimer();
+        return;
+    }
+
+    scheduleAutoAdvanceForShowtime(slide);
+}
+
 async function handleSlidePlaybackCompleted() {
     if (!state.autoAdvance || !state.deck || isSlideTransitionInProgress) {
         return;
@@ -528,6 +539,7 @@ async function renderCurrentSlide() {
 
     if (!slide.audio) {
         updateSlideAudioStatus(slide);
+        syncAutoSlideChangeForCurrentSlide();
         if (isTranscriptPanelOpen()) {
             await renderTranscriptContent({keepOpen: true});
         }
