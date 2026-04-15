@@ -122,19 +122,22 @@ function bindEvents() {
     elements.nextBtn.addEventListener('click', () => goToSlide(state.currentIndex + 1));
     elements.lastBtn.addEventListener('click', () => goToSlide(state.deck?.slides.length - 1 ?? -1));
     elements.gotoBtn.addEventListener('click', () => goToSlide(Number(elements.gotoInput.value) - 1));
-    elements.playBtn.addEventListener('click', async () => {
+    elements.playBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
         if (!state.deck || state.currentIndex < 0) {
             return;
         }
 
         if (elements.audioStatus.textContent === 'Pausiert') {
             await audioController.resume();
+            keepPlaybackButtonFocus();
             return;
         }
 
         await withErrorHandling(async () => {
             await playCurrentSlide();
         });
+        keepPlaybackButtonFocus();
     });
     elements.pauseBtn.addEventListener('click', async () => {
         clearSlideAdvanceTimer();
@@ -154,8 +157,15 @@ function bindEvents() {
         state.autoAdvance = elements.autoplayNextCheckbox.checked;
         syncAutoSlideChangeForCurrentSlide();
     });
-    elements.transcriptToggleBtn.addEventListener('click', async () => {
+    elements.transcriptToggleBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const previousAutoAdvance = state.autoAdvance;
         await toggleTranscriptPanel();
+        if (state.autoAdvance !== previousAutoAdvance) {
+            state.autoAdvance = previousAutoAdvance;
+            elements.autoplayNextCheckbox.checked = previousAutoAdvance;
+            syncAutoSlideChangeForCurrentSlide();
+        }
     });
 
     document.addEventListener('keydown', async (event) => {
@@ -184,6 +194,12 @@ function bindEvents() {
         resetSwipeState(swipeState);
         resetTapState();
     }, {passive: true});
+}
+
+function keepPlaybackButtonFocus() {
+    if (document.activeElement === elements.gotoInput) {
+        elements.playBtn.focus({preventScroll: true});
+    }
 }
 
 function handleTouchStart(event) {
