@@ -6,8 +6,8 @@ import {
     SLIDE_CHANGE_BELL_DECAY_SECONDS,
     SLIDE_CHANGE_BELL_STRIKE_SECONDS,
     SLIDE_CHANGE_BELL_VOLUME,
-    playSlideChangeGong,
 } from './gong.js';
+import {helleGlocke} from './glocke.js';
 import {
     canPlayInAudioElement,
     inferAudioType,
@@ -587,7 +587,7 @@ function playSlideChangeCue() {
             });
         }
 
-        return playSlideChangeGong(context, {
+        return helleGlocke(context, {
             volume: SLIDE_CHANGE_BELL_VOLUME,
             strikeSeconds: SLIDE_CHANGE_BELL_STRIKE_SECONDS,
             decaySeconds: SLIDE_CHANGE_BELL_DECAY_SECONDS,
