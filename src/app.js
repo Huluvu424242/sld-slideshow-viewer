@@ -29,6 +29,7 @@ let slideAdvanceTimer = null;
 let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
 let nonAudioPlaybackRemainingSeconds = null;
+let slideChangeCueIndicatorToken = 0;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
@@ -76,6 +77,11 @@ const elements = {
 const audioController = new AudioController({
     onStatusChange(status) {
         elements.audioStatus.textContent = status;
+        if (status.startsWith('Spielt')) {
+            renderSpeakingIndicator();
+        } else if (!showtimeCountdownInterval) {
+            renderShowtimeDash();
+        }
     },
     async onEnded() {
         await handleSlidePlaybackCompleted();
@@ -369,8 +375,47 @@ function renderShowtimeCountdown(value) {
 
     const safeValue = Math.max(0, Math.floor(value));
     elements.showtimeCountdown.textContent = String(safeValue);
+    elements.showtimeCountdown.classList.remove('is-speaking');
     elements.showtimeCountdown.classList.toggle('is-safe', safeValue > 3);
     elements.showtimeCountdown.classList.toggle('is-danger', safeValue <= 3);
+}
+
+function renderShowtimeDash() {
+    if (!elements.showtimeCountdown) {
+        return;
+    }
+    elements.showtimeCountdown.textContent = '–';
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+}
+
+function renderSpeakingIndicator() {
+    if (!elements.showtimeCountdown) {
+        return;
+    }
+    elements.showtimeCountdown.textContent = '🗣️';
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+    elements.showtimeCountdown.classList.add('is-speaking');
+}
+
+function showSlideChangeCueIndicator() {
+    if (!elements.showtimeCountdown) {
+        return 0;
+    }
+    slideChangeCueIndicatorToken += 1;
+    elements.showtimeCountdown.textContent = '🔔';
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    return slideChangeCueIndicatorToken;
+}
+
+function restoreShowtimeCountdownAfterCue(token) {
+    if (!elements.showtimeCountdown || token !== slideChangeCueIndicatorToken) {
+        return;
+    }
+    if (nonAudioPlaybackRemainingSeconds !== null) {
+        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
+        return;
+    }
+    renderShowtimeDash();
 }
 
 function startShowtimeCountdown(slide, options = {}) {
@@ -379,10 +424,7 @@ function startShowtimeCountdown(slide, options = {}) {
     const hasOverride = Number.isFinite(overrideSeconds) && overrideSeconds > 0;
 
     if (!slide && !hasOverride) {
-        if (elements.showtimeCountdown) {
-            elements.showtimeCountdown.textContent = '–';
-            elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
-        }
+        renderShowtimeDash();
         return;
     }
 
@@ -463,7 +505,7 @@ async function handleSlidePlaybackCompleted() {
         return;
     }
 
-    playSlideChangeCue();
+    playSlideChangeCueWithIndicator();
 }
 
 async function initializeFromQueryParameters() {
@@ -513,7 +555,7 @@ async function goToSlide(index, options = {}) {
         resetTapState();
         await audioController.stop();
         if (options.autoplay) {
-            const bellDurationSeconds = playSlideChangeCue();
+            const bellDurationSeconds = playSlideChangeCueWithIndicator();
             await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
         }
         state.currentIndex = index;
@@ -556,6 +598,20 @@ function playSlideChangeCue() {
     }
 }
 
+function playSlideChangeCueWithIndicator() {
+    const bellDurationSeconds = playSlideChangeCue();
+    if (bellDurationSeconds <= 0) {
+        return bellDurationSeconds;
+    }
+
+    const indicatorToken = showSlideChangeCueIndicator();
+    window.setTimeout(() => {
+        restoreShowtimeCountdownAfterCue(indicatorToken);
+    }, bellDurationSeconds * 1000);
+
+    return bellDurationSeconds;
+}
+
 function delay(durationMs) {
     return new Promise((resolve) => {
         window.setTimeout(resolve, durationMs);
@@ -571,8 +627,7 @@ async function renderCurrentSlide() {
     if (!slide) {
         elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
         if (elements.showtimeCountdown) {
-            elements.showtimeCountdown.textContent = '–';
-            elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+            renderShowtimeDash();
         }
         hideTranscriptPanel();
         return;
@@ -604,10 +659,7 @@ async function renderCurrentSlide() {
         return;
     }
 
-    if (elements.showtimeCountdown) {
-        elements.showtimeCountdown.textContent = '–';
-        elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
-    }
+    renderShowtimeDash();
 
     if (isTranscriptPanelOpen()) {
         await renderTranscriptContent({keepOpen: true});
@@ -648,6 +700,7 @@ async function playCurrentSlide(options = {}) {
         clearShowtimeCountdown();
         nonAudioPlaybackRemainingSeconds = null;
         setPlayButtonActive(true);
+        renderSpeakingIndicator();
         await audioController.play(slide, state.deck.assetLoader);
     });
 }
