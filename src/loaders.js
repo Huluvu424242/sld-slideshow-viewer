@@ -53,13 +53,14 @@ export async function loadDeckFromZip(file) {
 export async function loadDeckFromRemote(url) {
   const normalizedUrl = new URL(url, window.location.href).href;
 
-  if (normalizedUrl.toLowerCase().endsWith('.zip')) {
+  if (isArchiveBundleUrl(normalizedUrl)) {
     const response = await fetch(normalizedUrl);
     if (!response.ok) {
-      throw new Error(`Remote-ZIP konnte nicht geladen werden: HTTP ${response.status}`);
+      throw new Error(`Remote-SLD/ZIP konnte nicht geladen werden: HTTP ${response.status}`);
     }
     const blob = await response.blob();
-    return loadDeckFromZip(new File([blob], 'remote.zip', { type: 'application/zip' }));
+    const remoteFileName = inferRemoteFileName(normalizedUrl);
+    return loadDeckFromZip(new File([blob], remoteFileName, { type: 'application/zip' }));
   }
 
   const manifestUrl = normalizedUrl.toLowerCase().endsWith('slides.json')
@@ -182,6 +183,20 @@ function createObjectUrlFromHandle(rootHandle, relativePath) {
 
 function ensureDirectoryUrl(url) {
   return url.endsWith('/') ? url : `${url}/`;
+}
+
+function inferRemoteFileName(url) {
+  const pathname = new URL(url).pathname;
+  const candidate = pathname.split('/').pop();
+  if (!candidate) {
+    return 'remote.sld';
+  }
+  return candidate;
+}
+
+function isArchiveBundleUrl(url) {
+  const pathname = new URL(url).pathname.toLowerCase();
+  return pathname.endsWith('.zip') || pathname.endsWith('.sld');
 }
 
 function normalize(path) {
