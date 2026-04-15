@@ -77,6 +77,11 @@ const elements = {
 const audioController = new AudioController({
     onStatusChange(status) {
         elements.audioStatus.textContent = status;
+        if (status.startsWith('Spielt')) {
+            renderSpeakingIndicator();
+        } else if (!showtimeCountdownInterval) {
+            renderShowtimeDash();
+        }
     },
     async onEnded() {
         await handleSlidePlaybackCompleted();
@@ -370,6 +375,7 @@ function renderShowtimeCountdown(value) {
 
     const safeValue = Math.max(0, Math.floor(value));
     elements.showtimeCountdown.textContent = String(safeValue);
+    elements.showtimeCountdown.classList.remove('is-speaking');
     elements.showtimeCountdown.classList.toggle('is-safe', safeValue > 3);
     elements.showtimeCountdown.classList.toggle('is-danger', safeValue <= 3);
 }
@@ -379,7 +385,16 @@ function renderShowtimeDash() {
         return;
     }
     elements.showtimeCountdown.textContent = '–';
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+}
+
+function renderSpeakingIndicator() {
+    if (!elements.showtimeCountdown) {
+        return;
+    }
+    elements.showtimeCountdown.textContent = '🗣️';
     elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+    elements.showtimeCountdown.classList.add('is-speaking');
 }
 
 function showSlideChangeCueIndicator() {
@@ -388,7 +403,7 @@ function showSlideChangeCueIndicator() {
     }
     slideChangeCueIndicatorToken += 1;
     elements.showtimeCountdown.textContent = '🔔';
-    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
     return slideChangeCueIndicatorToken;
 }
 
@@ -644,9 +659,7 @@ async function renderCurrentSlide() {
         return;
     }
 
-    if (elements.showtimeCountdown) {
-        renderShowtimeDash();
-    }
+    renderShowtimeDash();
 
     if (isTranscriptPanelOpen()) {
         await renderTranscriptContent({keepOpen: true});
@@ -687,6 +700,7 @@ async function playCurrentSlide(options = {}) {
         clearShowtimeCountdown();
         nonAudioPlaybackRemainingSeconds = null;
         setPlayButtonActive(true);
+        renderSpeakingIndicator();
         await audioController.play(slide, state.deck.assetLoader);
     });
 }

@@ -198,6 +198,10 @@ button:disabled {
     color: #ff7b72;
 }
 
+.showtime-countdown.is-speaking {
+    color: #6cc0ff;
+}
+
 input[type="url"],
 input[type="number"] {
     padding: 10px 12px;
