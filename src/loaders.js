@@ -96,9 +96,17 @@ async function buildDeck(manifest, assetLoader) {
   validateManifest(manifest);
 
   const slides = [];
+  const loadErrors = [];
   for (const [index, slide] of manifest.slides.entries()) {
     const contentPath = slide.content;
-    const contentText = await assetLoader.loadText(contentPath);
+    let contentText;
+    try {
+      contentText = await assetLoader.loadText(contentPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      loadErrors.push(`Folie ${index + 1}: ${contentPath} (${message})`);
+      contentText = `# Fehler beim Laden\n\nDie Folien-Datei \`${contentPath}\` konnte nicht geladen werden.`;
+    }
     slides.push({
       ...slide,
       audio: normalizeAudio(slide.audio),
@@ -108,6 +116,12 @@ async function buildDeck(manifest, assetLoader) {
       contentText,
       format: slide.format,
     });
+  }
+
+  if (loadErrors.length > 0) {
+    console.warn(
+      `Einige Folieninhalte konnten nicht geladen werden:\n${loadErrors.join('\n')}`,
+    );
   }
 
   return {
@@ -131,11 +145,10 @@ function validateManifest(manifest) {
       throw new Error(`Folie ${index + 1} besitzt kein content-Feld.`);
     }
 
-    if (!slide.audio) {
-      const showtime = normalizeShowtime(slide.showtime);
-      if (!showtime) {
-        throw new Error(`Folie ${index + 1} besitzt weder audio noch ein gültiges showtime-Attribut.`);
-      }
+    const normalizedAudio = normalizeAudio(slide.audio);
+    const normalizedShowtime = normalizeShowtime(slide.showtime);
+    if (!normalizedAudio && !normalizedShowtime) {
+      throw new Error(`Folie ${index + 1} besitzt weder audio noch ein gültiges showtime-Attribut.`);
     }
   }
 }

@@ -8,6 +8,7 @@ import {
     SLIDE_CHANGE_BELL_VOLUME,
     playSlideChangeGong,
 } from './gong.js';
+import {helleGlocke, playGlockeTone} from './glocke.js';
 import {
     canPlayInAudioElement,
     inferAudioType,
@@ -587,11 +588,20 @@ function playSlideChangeCue() {
             });
         }
 
+        try {
+            return playGlockeTone(context, helleGlocke, {
+                loudness: Math.min(1, Math.max(0.0001, SLIDE_CHANGE_BELL_VOLUME / 4)),
+                attack: SLIDE_CHANGE_BELL_STRIKE_SECONDS,
+                duration: SLIDE_CHANGE_BELL_DECAY_SECONDS,
+            });
+        } catch (glockeError) {
+            console.debug('helleGlocke fehlgeschlagen, nutze Gong-Fallback.', glockeError);
         return playSlideChangeGong(context, {
             volume: SLIDE_CHANGE_BELL_VOLUME,
         strikeSeconds: SLIDE_CHANGE_BELL_STRIKE_SECONDS,
         decaySeconds: SLIDE_CHANGE_BELL_DECAY_SECONDS,
         });
+        }
     } catch (error) {
         console.debug('Slide-Change-Cue konnte nicht abgespielt werden.', error);
         return 0;
