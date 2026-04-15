@@ -11,8 +11,15 @@ const SLIDE_CHANGE_BELL_STRIKE_SECONDS = 0.025;
 const SLIDE_CHANGE_BELL_DECAY_SECONDS = 3.2;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
+const SWIPE_MIN_HORIZONTAL_DISTANCE_PX = 60;
+const SWIPE_MAX_VERTICAL_DRIFT_PX = 50;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
+const swipeState = {
+    startX: 0,
+    startY: 0,
+    tracking: false,
+};
 
 const elements = {
     deckTitle: document.querySelector('#deck-title'),
@@ -146,6 +153,61 @@ function bindEvents() {
             await playCurrentSlide();
         }
     });
+
+    document.addEventListener('touchstart', handleTouchStart, {passive: true});
+    document.addEventListener('touchend', (event) => {
+        void handleTouchEnd(event);
+    }, {passive: true});
+    document.addEventListener('touchcancel', resetSwipeState, {passive: true});
+}
+
+function handleTouchStart(event) {
+    if (event.touches.length !== 1) {
+        resetSwipeState();
+        return;
+    }
+    const touch = event.touches[0];
+    swipeState.startX = touch.clientX;
+    swipeState.startY = touch.clientY;
+    swipeState.tracking = true;
+}
+
+async function handleTouchEnd(event) {
+    if (!swipeState.tracking || !state.deck || isSlideTransitionInProgress) {
+        resetSwipeState();
+        return;
+    }
+
+    const changedTouch = event.changedTouches?.[0];
+    if (!changedTouch) {
+        resetSwipeState();
+        return;
+    }
+
+    const horizontalDistance = changedTouch.clientX - swipeState.startX;
+    const verticalDistance = changedTouch.clientY - swipeState.startY;
+    const isHorizontalSwipe = Math.abs(horizontalDistance) >= SWIPE_MIN_HORIZONTAL_DISTANCE_PX
+        && Math.abs(verticalDistance) <= SWIPE_MAX_VERTICAL_DRIFT_PX
+        && Math.abs(horizontalDistance) > Math.abs(verticalDistance);
+
+    resetSwipeState();
+
+    if (!isHorizontalSwipe) {
+        return;
+    }
+
+    if (horizontalDistance < 0) {
+        await goToSlide(state.currentIndex - 1);
+        return;
+    }
+
+    await goToSlide(state.currentIndex + 1);
+}
+
+function resetSwipeState() {
+    swipeState.startX = 0;
+    swipeState.startY = 0;
+    swipeState.tracking = false;
 }
 
 function clearSlideAdvanceTimer() {
