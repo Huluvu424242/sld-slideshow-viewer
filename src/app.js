@@ -28,6 +28,7 @@ const state = createInitialState();
 let slideAdvanceTimer = null;
 let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
+let nonAudioPlaybackRemainingSeconds = null;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
@@ -79,6 +80,16 @@ const audioController = new AudioController({
     async onEnded() {
         await handleSlidePlaybackCompleted();
     },
+    onFallbackTimerStart(seconds) {
+        if (!state.autoAdvance) {
+            return;
+        }
+        setPlayButtonActive(true);
+        startShowtimeCountdown(null, {seconds});
+    },
+    onAudioIssue(message) {
+        showError(`⚠️ ${message}`);
+    },
 });
 
 bindEvents();
@@ -121,33 +132,50 @@ function bindEvents() {
     elements.nextBtn.addEventListener('click', () => goToSlide(state.currentIndex + 1));
     elements.lastBtn.addEventListener('click', () => goToSlide(state.deck?.slides.length - 1 ?? -1));
     elements.gotoBtn.addEventListener('click', () => goToSlide(Number(elements.gotoInput.value) - 1));
-    elements.playBtn.addEventListener('click', async () => {
+    elements.playBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
         if (!state.deck || state.currentIndex < 0) {
             return;
         }
 
         if (elements.audioStatus.textContent === 'Pausiert') {
             await audioController.resume();
+            keepPlaybackButtonFocus();
             return;
         }
 
         await withErrorHandling(async () => {
             await playCurrentSlide();
         });
+        keepPlaybackButtonFocus();
     });
     elements.pauseBtn.addEventListener('click', async () => {
         clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+        setPlayButtonActive(false);
         await audioController.pause();
     });
     elements.stopBtn.addEventListener('click', async () => {
         clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+        setPlayButtonActive(false);
         await audioController.stop();
     });
     elements.autoplayNextCheckbox.addEventListener('change', () => {
         state.autoAdvance = elements.autoplayNextCheckbox.checked;
+        syncAutoSlideChangeForCurrentSlide();
     });
-    elements.transcriptToggleBtn.addEventListener('click', async () => {
+    elements.transcriptToggleBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const previousAutoAdvance = state.autoAdvance;
         await toggleTranscriptPanel();
+        if (state.autoAdvance !== previousAutoAdvance) {
+            state.autoAdvance = previousAutoAdvance;
+            elements.autoplayNextCheckbox.checked = previousAutoAdvance;
+            syncAutoSlideChangeForCurrentSlide();
+        }
     });
 
     document.addEventListener('keydown', async (event) => {
@@ -176,6 +204,12 @@ function bindEvents() {
         resetSwipeState(swipeState);
         resetTapState();
     }, {passive: true});
+}
+
+function keepPlaybackButtonFocus() {
+    if (document.activeElement === elements.gotoInput) {
+        elements.playBtn.focus({preventScroll: true});
+    }
 }
 
 function handleTouchStart(event) {
@@ -271,6 +305,11 @@ function clearShowtimeCountdown() {
     }
 }
 
+function setPlayButtonActive(active) {
+    elements.playBtn?.classList.toggle('is-active', active);
+    elements.playBtn?.setAttribute('aria-pressed', active ? 'true' : 'false');
+}
+
 function resetTapState() {
     tapState.lastTapTimestamp = 0;
     tapState.lastTapX = 0;
@@ -334,9 +373,12 @@ function renderShowtimeCountdown(value) {
     elements.showtimeCountdown.classList.toggle('is-danger', safeValue <= 3);
 }
 
-function startShowtimeCountdown(slide) {
+function startShowtimeCountdown(slide, options = {}) {
     clearShowtimeCountdown();
-    if (!slide || !Number.isFinite(Number(slide.showtime)) || Number(slide.showtime) <= 0) {
+    const overrideSeconds = Number(options.seconds);
+    const hasOverride = Number.isFinite(overrideSeconds) && overrideSeconds > 0;
+
+    if (!slide && !hasOverride) {
         if (elements.showtimeCountdown) {
             elements.showtimeCountdown.textContent = '–';
             elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
@@ -344,13 +386,17 @@ function startShowtimeCountdown(slide) {
         return;
     }
 
-    let remainingSeconds = getSlideShowtimeSeconds(slide);
-    renderShowtimeCountdown(remainingSeconds);
+    nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
+    renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
-        remainingSeconds -= 1;
-        renderShowtimeCountdown(remainingSeconds);
-        if (remainingSeconds <= 0) {
+        if (nonAudioPlaybackRemainingSeconds === null) {
+            return;
+        }
+        nonAudioPlaybackRemainingSeconds = Math.max(0, nonAudioPlaybackRemainingSeconds - 1);
+        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
+        if (nonAudioPlaybackRemainingSeconds <= 0) {
             clearShowtimeCountdown();
+            setPlayButtonActive(false);
         }
     }, 1000);
 }
@@ -385,7 +431,29 @@ function scheduleAutoAdvanceForShowtime(slide) {
     return true;
 }
 
+function syncAutoSlideChangeForCurrentSlide() {
+    const slide = state.deck?.slides[state.currentIndex];
+    if (!slide || slide.audio) {
+        nonAudioPlaybackRemainingSeconds = null;
+        clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        setPlayButtonActive(false);
+        return;
+    }
+
+    if (!state.autoAdvance) {
+        clearSlideAdvanceTimer();
+        setPlayButtonActive(false);
+        return;
+    }
+
+    setPlayButtonActive(true);
+    startShowtimeCountdown(slide);
+    scheduleAutoAdvanceForShowtime(slide);
+}
+
 async function handleSlidePlaybackCompleted() {
+    setPlayButtonActive(false);
     if (!state.autoAdvance || !state.deck || isSlideTransitionInProgress) {
         return;
     }
@@ -497,6 +565,8 @@ function delay(durationMs) {
 async function renderCurrentSlide() {
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
+    nonAudioPlaybackRemainingSeconds = null;
+    setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
         elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
@@ -524,14 +594,19 @@ async function renderCurrentSlide() {
   `;
 
     await hydrateAsyncAssets();
-    startShowtimeCountdown(slide);
 
     if (!slide.audio) {
         updateSlideAudioStatus(slide);
+        syncAutoSlideChangeForCurrentSlide();
         if (isTranscriptPanelOpen()) {
             await renderTranscriptContent({keepOpen: true});
         }
         return;
+    }
+
+    if (elements.showtimeCountdown) {
+        elements.showtimeCountdown.textContent = '–';
+        elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
     }
 
     if (isTranscriptPanelOpen()) {
@@ -560,10 +635,19 @@ async function playCurrentSlide(options = {}) {
     }
     await withErrorHandling(async () => {
         if (!slide.audio) {
-            scheduleAutoAdvanceForShowtime(slide);
+            setPlayButtonActive(true);
+            startShowtimeCountdown(slide);
+            if (state.autoAdvance) {
+                scheduleAutoAdvanceForShowtime(slide);
+            } else {
+                clearSlideAdvanceTimer();
+            }
             return;
         }
         clearSlideAdvanceTimer();
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+        setPlayButtonActive(true);
         await audioController.play(slide, state.deck.assetLoader);
     });
 }
@@ -595,6 +679,7 @@ function renderSlideList() {
 
 function refreshUi() {
     const slideCount = state.deck?.slides.length ?? 0;
+    const currentSlide = state.deck?.slides[state.currentIndex];
     elements.deckTitle.textContent = state.deck?.title ?? '–';
     elements.sourceKind.textContent = state.sourceKind ?? '–';
     elements.slideCounter.textContent = slideCount > 0 ? `${state.currentIndex + 1} / ${slideCount}` : '0 / 0';
@@ -617,7 +702,12 @@ function refreshUi() {
     }
 
     elements.gotoInput.disabled = disabled;
-    elements.transcriptToggleBtn.disabled = disabled;
+    elements.transcriptToggleBtn.disabled = disabled || !hasSlideAudioSource(currentSlide);
+}
+
+function hasSlideAudioSource(slide) {
+    const source = slide?.audio?.src;
+    return typeof source === 'string' && source.trim().length > 0;
 }
 
 async function toggleTranscriptPanel() {
@@ -740,6 +830,7 @@ function checkAudioSupport() {
         showError(`
         ⚠️ Sprachwiedergabe wird von diesem Browser nicht unterstützt.
         👉 Bitte nutze ein Gerät mit funktionierender SpeechSynthesis, häufig funzt ein Chrome Browser.
+        ℹ️ Falls eine Folie Audio per TTS benötigt, wird stattdessen eine Fallback-Showtime von 10 Sekunden verwendet.
         `);
     }
 }

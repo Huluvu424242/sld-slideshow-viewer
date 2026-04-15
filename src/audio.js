@@ -1,7 +1,9 @@
 export class AudioController {
-    constructor({onStatusChange, onEnded}) {
+    constructor({onStatusChange, onEnded, onFallbackTimerStart, onAudioIssue}) {
         this.onStatusChange = onStatusChange;
         this.onEnded = onEnded;
+        this.onFallbackTimerStart = onFallbackTimerStart;
+        this.onAudioIssue = onAudioIssue;
         this.audio = null;
         this.synthesis = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
         this.currentMode = 'stopped';
@@ -58,11 +60,13 @@ export class AudioController {
                 return;
             }
 
-            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds(slide)} s`);
+            this.reportAudioIssue('Audioformat wird nicht unterstützt. Es wird eine Fallback-Showtime von 10 Sekunden verwendet.');
+            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds()} s`);
             this.scheduleFallbackAdvance(slide, playbackSession);
         } catch (error) {
             console.warn('Audio konnte nicht geladen werden. Fallback-Showtime wird verwendet.', error);
-            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds(slide)} s`);
+            this.reportAudioIssue('Audio konnte nicht geladen werden. Es wird eine Fallback-Showtime von 10 Sekunden verwendet.');
+            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds()} s`);
             this.scheduleFallbackAdvance(slide, playbackSession);
         }
     }
@@ -128,7 +132,8 @@ export class AudioController {
             }
             console.warn('Audio-Datei konnte nicht abgespielt werden. Fallback-Showtime wird verwendet.', url);
             this.audio = null;
-            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds(slide)} s`);
+            this.reportAudioIssue('Audio-Datei konnte nicht abgespielt werden. Es wird eine Fallback-Showtime von 10 Sekunden verwendet.');
+            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds()} s`);
             this.scheduleFallbackAdvance(slide, playbackSession);
         }, {once: true});
         audio.addEventListener('pause', () => {
@@ -150,6 +155,7 @@ export class AudioController {
 
     playSpeech(text, audioConfig = {}, isSsml, playbackSession, slide = {}) {
         if (!this.isSpeechReallyUsable()) {
+            this.reportAudioIssue('Sprachausgabe wird von diesem Browser nicht unterstützt. Es wird eine Fallback-Showtime von 10 Sekunden verwendet.');
             this.updateStatus('Sprachausgabe nicht unterstützt');
             this.scheduleFallbackAdvance(slide, playbackSession);
             return;
@@ -188,8 +194,9 @@ export class AudioController {
             if (!this.isCurrentPlaybackSession(playbackSession)) {
                 return;
             }
+            this.reportAudioIssue(`Fehler bei der Sprachausgabe (${event.error || 'unbekannt'}). Es wird eine Fallback-Showtime von 10 Sekunden verwendet.`);
             this.updateStatus(`TTS-Fehler: ${event.error || 'unbekannt'}`);
-            this.onEnded?.();
+            this.scheduleFallbackAdvance(slide, playbackSession);
         };
 
         this.synthesis.speak(utterance);
@@ -198,6 +205,7 @@ export class AudioController {
     scheduleFallbackAdvance(slide = {}, playbackSession) {
         this.clearUnavailableAudioFallbackTimer();
         const fallbackSeconds = getUnavailableAudioShowtimeSeconds(slide);
+        this.onFallbackTimerStart?.(fallbackSeconds);
         this.unavailableAudioFallbackTimer = window.setTimeout(() => {
             this.unavailableAudioFallbackTimer = null;
             if (!this.isCurrentPlaybackSession(playbackSession)) {
@@ -222,6 +230,10 @@ export class AudioController {
 
     isCurrentPlaybackSession(playbackSession) {
         return playbackSession === this.playbackSession;
+    }
+
+    reportAudioIssue(message) {
+        this.onAudioIssue?.(message);
     }
 }
 
@@ -248,11 +260,7 @@ function inferAudioType(audioConfig = {}) {
 
 const DEFAULT_UNAVAILABLE_AUDIO_SHOWTIME_SECONDS = 10;
 
-function getUnavailableAudioShowtimeSeconds(slide = {}) {
-    const showtime = Number(slide.showtime);
-    if (Number.isFinite(showtime) && showtime > 0) {
-        return showtime;
-    }
+function getUnavailableAudioShowtimeSeconds() {
     return DEFAULT_UNAVAILABLE_AUDIO_SHOWTIME_SECONDS;
 }
 

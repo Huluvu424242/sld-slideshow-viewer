@@ -146,6 +146,11 @@ button:disabled {
     background: linear-gradient(180deg, rgba(53, 94, 127, 0.96), rgba(28, 58, 84, 0.98));
 }
 
+.icon-btn--play.is-active {
+    background: linear-gradient(180deg, rgba(77, 138, 187, 0.98), rgba(33, 73, 104, 0.98));
+    box-shadow: 0 0 0 2px rgba(108, 192, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 .icon-btn .icon {
     width: 24px;
     height: 24px;
