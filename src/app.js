@@ -28,10 +28,18 @@ const state = createInitialState();
 let slideAdvanceTimer = null;
 let slideChangeCueAudioContext = null;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
+const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
+const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
+const DOUBLE_TAP_MAX_DRIFT_PX = 56;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
 const swipeState = createSwipeState();
+const tapState = {
+    lastTapTimestamp: 0,
+    lastTapX: 0,
+    lastTapY: 0,
+};
 
 const elements = {
     deckTitle: document.querySelector('#deck-title'),
@@ -63,20 +71,11 @@ const elements = {
 };
 
 const audioController = new AudioController({
-    fallbackMessage: 'Die Audio Datei konnte nicht geladen werden.',
     onStatusChange(status) {
         elements.audioStatus.textContent = status;
     },
     async onEnded() {
-        if (!state.autoAdvance) {
-            return;
-        }
-        if (!state.deck) {
-            return;
-        }
-        if (state.currentIndex < state.deck.slides.length - 1) {
-            await goToSlide(state.currentIndex + 1, {autoplay: true});
-        }
+        await handleSlidePlaybackCompleted();
     },
 });
 
@@ -173,6 +172,7 @@ function bindEvents() {
     }, {passive: true});
     elements.slideStage.addEventListener('touchcancel', () => {
         resetSwipeState(swipeState);
+        resetTapState();
     }, {passive: true});
 }
 
@@ -203,15 +203,51 @@ async function handleTouchEnd(event) {
         return;
     }
 
-    const {isHorizontalSwipe, horizontalDistance} = finishSwipe(swipeState, event.changedTouches?.[0]);
+    const changedTouch = event.changedTouches?.[0];
+    const {isHorizontalSwipe, horizontalDistance} = finishSwipe(swipeState, changedTouch);
 
     resetSwipeState(swipeState);
 
-    if (!isHorizontalSwipe) {
+    if (isHorizontalSwipe) {
+        resetTapState();
+        if (horizontalDistance < 0) {
+            await goToSlide(state.currentIndex + 1);
+            return;
+        }
+
+        await goToSlide(state.currentIndex - 1);
         return;
     }
 
-    if (horizontalDistance < 0) {
+    if (!changedTouch) {
+        return;
+    }
+
+    await handleDoubleTapNavigation(changedTouch);
+}
+
+async function handleDoubleTapNavigation(touch) {
+    const now = Date.now();
+    const deltaMs = now - tapState.lastTapTimestamp;
+    const driftX = Math.abs(touch.clientX - tapState.lastTapX);
+    const driftY = Math.abs(touch.clientY - tapState.lastTapY);
+    const isDoubleTap = deltaMs <= DOUBLE_TAP_MAX_INTERVAL_MS
+        && driftX <= DOUBLE_TAP_MAX_DRIFT_PX
+        && driftY <= DOUBLE_TAP_MAX_DRIFT_PX;
+
+    tapState.lastTapTimestamp = now;
+    tapState.lastTapX = touch.clientX;
+    tapState.lastTapY = touch.clientY;
+
+    if (!isDoubleTap) {
+        return;
+    }
+
+    resetTapState();
+    const rect = elements.slideStage.getBoundingClientRect();
+    const isRightSide = touch.clientX >= rect.left + (rect.width / 2);
+
+    if (isRightSide) {
         await goToSlide(state.currentIndex + 1);
         return;
     }
@@ -224,6 +260,12 @@ function clearSlideAdvanceTimer() {
         window.clearTimeout(slideAdvanceTimer);
         slideAdvanceTimer = null;
     }
+}
+
+function resetTapState() {
+    tapState.lastTapTimestamp = 0;
+    tapState.lastTapX = 0;
+    tapState.lastTapY = 0;
 }
 
 function beginSlideTransitionLock() {
@@ -262,30 +304,30 @@ function setSlideListNavigationDisabled(disabled) {
 }
 
 function getSlideShowtimeSeconds(slide) {
-    if (!slide || slide.audio) {
-        return null;
+    if (!slide) {
+        return DEFAULT_SLIDE_SHOWTIME_SECONDS;
     }
-
     const value = Number(slide.showtime);
     if (!Number.isFinite(value) || value <= 0) {
-        return null;
+        return DEFAULT_SLIDE_SHOWTIME_SECONDS;
     }
-
     return value;
 }
 
 function updateSlideAudioStatus(slide) {
     const showtime = getSlideShowtimeSeconds(slide);
-    elements.audioStatus.textContent = showtime
-        ? `Kein Audio – Anzeige ${showtime} s`
-        : 'Kein Audio';
+    if (slide?.audio) {
+        elements.audioStatus.textContent = `Audio nicht verfügbar – Anzeige ${showtime} s`;
+        return;
+    }
+    elements.audioStatus.textContent = `Kein Audio – Anzeige ${showtime} s`;
 }
 
-function scheduleAutoAdvanceForSilentSlide(slide) {
+function scheduleAutoAdvanceForShowtime(slide) {
     clearSlideAdvanceTimer();
 
     const showtime = getSlideShowtimeSeconds(slide);
-    if (!showtime || !state.autoAdvance) {
+    if (!state.autoAdvance) {
         updateSlideAudioStatus(slide);
         return false;
     }
@@ -296,12 +338,23 @@ function scheduleAutoAdvanceForSilentSlide(slide) {
         if (!state.autoAdvance || !state.deck) {
             return;
         }
-        if (state.currentIndex < state.deck.slides.length - 1) {
-            await goToSlide(state.currentIndex + 1, {autoplay: true});
-        }
+        await handleSlidePlaybackCompleted();
     }, showtime * 1000);
 
     return true;
+}
+
+async function handleSlidePlaybackCompleted() {
+    if (!state.autoAdvance || !state.deck || isSlideTransitionInProgress) {
+        return;
+    }
+
+    if (state.currentIndex < state.deck.slides.length - 1) {
+        await goToSlide(state.currentIndex + 1, {autoplay: true});
+        return;
+    }
+
+    playSlideChangeCue();
 }
 
 async function initializeFromQueryParameters() {
@@ -345,11 +398,12 @@ async function goToSlide(index, options = {}) {
     }
     beginSlideTransitionLock();
     try {
+        clearSlideAdvanceTimer();
+        resetTapState();
+        await audioController.stop();
         const bellDurationSeconds = playSlideChangeCue();
         await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
-        clearSlideAdvanceTimer();
         state.currentIndex = index;
-        await audioController.stop();
         hideTranscriptPanel();
         refreshUi();
         renderSlideList();
@@ -455,7 +509,7 @@ async function playCurrentSlide(options = {}) {
     }
     await withErrorHandling(async () => {
         if (!slide.audio) {
-            scheduleAutoAdvanceForSilentSlide(slide);
+            scheduleAutoAdvanceForShowtime(slide);
             return;
         }
         clearSlideAdvanceTimer();

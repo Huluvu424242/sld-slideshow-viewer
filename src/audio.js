@@ -1,8 +1,7 @@
 export class AudioController {
-    constructor({onStatusChange, onEnded, fallbackMessage = 'Die Audio Datei konnte nicht geladen werden.'}) {
+    constructor({onStatusChange, onEnded}) {
         this.onStatusChange = onStatusChange;
         this.onEnded = onEnded;
-        this.fallbackMessage = fallbackMessage;
         this.audio = null;
         this.synthesis = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
         this.currentMode = 'stopped';
@@ -59,12 +58,12 @@ export class AudioController {
                 return;
             }
 
-            this.updateStatus(`Nicht unterstützter Audiotyp: ${audioType || 'unbekannt'}`);
-            await this.playFallbackMessage(slide, slide.audio, playbackSession);
+            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds(slide)} s`);
+            this.scheduleFallbackAdvance(slide, playbackSession);
         } catch (error) {
-            console.warn('Audio konnte nicht geladen werden. Fallback wird gesprochen.', error);
-            this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
-            await this.playFallbackMessage(slide, slide.audio, playbackSession);
+            console.warn('Audio konnte nicht geladen werden. Fallback-Showtime wird verwendet.', error);
+            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds(slide)} s`);
+            this.scheduleFallbackAdvance(slide, playbackSession);
         }
     }
 
@@ -127,10 +126,10 @@ export class AudioController {
             if (!this.isCurrentPlaybackSession(playbackSession)) {
                 return;
             }
-            console.warn('Audio-Datei konnte nicht abgespielt werden. Fallback wird gesprochen.', url);
+            console.warn('Audio-Datei konnte nicht abgespielt werden. Fallback-Showtime wird verwendet.', url);
             this.audio = null;
-            this.updateStatus('Audio-Datei fehlt oder ist nicht erreichbar');
-            await this.playFallbackMessage(slide, {}, playbackSession);
+            this.updateStatus(`Audio nicht verfügbar – Anzeige ${getUnavailableAudioShowtimeSeconds(slide)} s`);
+            this.scheduleFallbackAdvance(slide, playbackSession);
         }, {once: true});
         audio.addEventListener('pause', () => {
             if (!this.isCurrentPlaybackSession(playbackSession)) {
@@ -147,15 +146,6 @@ export class AudioController {
             this.updateStatus('Spielt');
         });
         await audio.play();
-    }
-
-    async playFallbackMessage(slide = {}, audioConfig = {}, playbackSession) {
-        if (!this.isSpeechReallyUsable()) {
-            this.updateStatus('Audio nicht verfügbar');
-            this.scheduleFallbackAdvance(slide, playbackSession);
-            return;
-        }
-        this.playSpeech(this.fallbackMessage, audioConfig, false, playbackSession, slide);
     }
 
     playSpeech(text, audioConfig = {}, isSsml, playbackSession, slide = {}) {
