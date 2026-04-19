@@ -1,0 +1,170 @@
+name: Dependency and License Notice Check
+
+on:
+  push:
+    paths:
+      - '**/*.js'
+      - '**/*.mjs'
+      - '**/*.cjs'
+      - '**/*.ts'
+      - '**/*.mts'
+      - '**/*.cts'
+      - '**/*.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+      - 'yarn.lock'
+      - 'THIRD_PARTY_NOTICES.md'
+      - '.github/workflows/dependency-license-check.yml'
+  pull_request:
+    paths:
+      - '**/*.js'
+      - '**/*.mjs'
+      - '**/*.cjs'
+      - '**/*.ts'
+      - '**/*.mts'
+      - '**/*.cts'
+      - '**/*.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+      - 'yarn.lock'
+      - 'THIRD_PARTY_NOTICES.md'
+      - '.github/workflows/dependency-license-check.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  check-third-party-notices:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Verify THIRD_PARTY_NOTICES.md against detected dependencies
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          REPO_ROOT = Path(".").resolve()
+          NOTICES_FILE = REPO_ROOT / "THIRD_PARTY_NOTICES.md"
+
+          if not NOTICES_FILE.exists():
+              print("ERROR: THIRD_PARTY_NOTICES.md was not found in the repository root.")
+              sys.exit(1)
+
+          notices_text = NOTICES_FILE.read_text(encoding="utf-8", errors="replace").lower()
+
+          EXCLUDED_DIRS = {
+              ".git",
+              ".github",
+              "node_modules",
+              "dist",
+              "build",
+              "coverage",
+              ".idea",
+              ".vscode",
+          }
+
+          SCANNED_SUFFIXES = {
+              ".js", ".mjs", ".cjs",
+              ".ts", ".mts", ".cts",
+              ".html", ".xhtml",
+          }
+
+          CDN_PATTERNS = [
+              re.compile(r"https?://cdn\.jsdelivr\.net/npm/(@?[^@/'\"\s]+(?:/[^@/'\"\s]+)?)(?:@[^/'\"\s]+)?"),
+              re.compile(r"https?://unpkg\.com/(@?[^@/'\"\s]+(?:/[^@/'\"\s]+)?)(?:@[^/'\"\s]+)?"),
+              re.compile(r"https?://esm\.sh/(@?[^@/'\"\s]+(?:/[^@/'\"\s]+)?)(?:@[^/'\"\s]+)?"),
+              re.compile(r"https?://cdn\.skypack\.dev/(@?[^?/'\"\s]+(?:/[^?/'\"\s]+)?)"),
+          ]
+
+          def normalize_package_name(name: str) -> str:
+              name = name.strip()
+              if not name:
+                  return name
+              if name.startswith("@"):
+                  parts = name.split("/")
+                  return "/".join(parts[:2]) if len(parts) >= 2 else name
+              return name.split("/")[0]
+
+          detected = set()
+          evidence = {}
+
+          def add_dependency(name: str, source: str) -> None:
+              normalized = normalize_package_name(name)
+              if not normalized:
+                  return
+              detected.add(normalized)
+              evidence.setdefault(normalized, []).append(source)
+
+          # 1) package.json dependencies
+          package_json = REPO_ROOT / "package.json"
+          if package_json.exists():
+              try:
+                  data = json.loads(package_json.read_text(encoding="utf-8"))
+                  for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+                      values = data.get(section, {})
+                      if isinstance(values, dict):
+                          for dep_name in values.keys():
+                              add_dependency(dep_name, f"package.json:{section}")
+              except Exception as exc:
+                  print(f"ERROR: Could not parse package.json: {exc}")
+                  sys.exit(1)
+
+          # 2) CDN imports in source files
+          for path in REPO_ROOT.rglob("*"):
+              if not path.is_file():
+                  continue
+
+              if any(part in EXCLUDED_DIRS for part in path.parts):
+                  continue
+
+              if path.name == "THIRD_PARTY_NOTICES.md":
+                  continue
+
+              if path.suffix.lower() not in SCANNED_SUFFIXES:
+                  continue
+
+              try:
+                  text = path.read_text(encoding="utf-8", errors="replace")
+              except Exception:
+                  continue
+
+              for pattern in CDN_PATTERNS:
+                  for match in pattern.finditer(text):
+                      dep_name = match.group(1)
+                      add_dependency(dep_name, str(path.relative_to(REPO_ROOT)))
+
+          if not detected:
+              print("No third-party dependencies detected. Check passed.")
+              sys.exit(0)
+
+          missing = []
+          for dep in sorted(detected):
+              if dep.lower() not in notices_text:
+                  missing.append(dep)
+
+          print("Detected dependencies:")
+          for dep in sorted(detected):
+              srcs = ", ".join(sorted(set(evidence.get(dep, []))))
+              print(f"  - {dep}  [{srcs}]")
+
+          if missing:
+              print("\nERROR: The following detected dependencies are missing from THIRD_PARTY_NOTICES.md:")
+              for dep in missing:
+                  srcs = ", ".join(sorted(set(evidence.get(dep, []))))
+                  print(f"  - {dep}  [{srcs}]")
+              sys.exit(1)
+
+          print("\nAll detected dependencies are documented in THIRD_PARTY_NOTICES.md.")
+          PY
