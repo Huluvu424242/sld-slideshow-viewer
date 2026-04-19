@@ -844,16 +844,31 @@ async function togglePresentationByTouch() {
         return;
     }
 
-    if (elements.audioStatus.textContent === 'Pausiert') {
-        await resumePresentation();
+    if (!isPresentationRunning()) {
+        if (elements.audioStatus.textContent === 'Pausiert') {
+            await resumePresentation();
+            return;
+        }
+        await playCurrentSlide();
         return;
     }
 
     await pausePresentation();
 }
 
+function isPresentationRunning() {
+    if (nonAudioPlaybackRemainingSeconds !== null) {
+        return true;
+    }
+    return elements.audioStatus.textContent.startsWith('Spielt');
+}
+
 async function pausePresentation() {
     if (!hasPresentationStarted) {
+        return;
+    }
+
+    if (!isPresentationRunning()) {
         return;
     }
 
@@ -864,6 +879,10 @@ async function pausePresentation() {
     clearShowtimeCountdown();
     nonAudioPlaybackRemainingSeconds = null;
     setPlayButtonActive(false);
+
+    if (elements.audioStatus.textContent === 'Pausiert') {
+        return;
+    }
 
     if (pausedNonAudioRemainingSeconds !== null) {
         elements.audioStatus.textContent = 'Pausiert';
