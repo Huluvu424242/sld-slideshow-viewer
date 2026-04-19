@@ -69,41 +69,62 @@
       <main class="stage">
         <header class="toolbar">
           <div class="toolbar-group toolbar-group--primary">
-            <button id="first-btn" class="icon-btn" type="button" title="Erste Folie" aria-label="Erste Folie">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M18 6v12M14 7l-6 5 6 5V7z" />
-              </svg>
+            <button id="first-btn"
+                    class="icon-btn icon-btn-first"
+                    type="button"
+                    title="Erste Folie"
+                    aria-label="Erste Folie"
+                    data-icon="first"
+            >
             </button>
-            <button id="prev-btn" class="icon-btn" type="button" title="Vorherige Folie" aria-label="Vorherige Folie">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M15.5 7l-7 5 7 5V7z" />
-              </svg>
+            <button id="prev-btn"
+                    class="icon-btn icon-btn-prev"
+                    type="button"
+                    title="Vorherige Folie"
+                    aria-label="Vorherige Folie"
+                    data-icon="prev"
+            >
             </button>
-            <button id="play-btn" class="icon-btn icon-btn--play" type="button" title="Abspielen" aria-label="Abspielen" aria-pressed="false">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M10 8.75l5.5 3.25L10 15.25v-6.5z" />
-              </svg>
+            <button id="play-btn"
+                    class="icon-btn icon-btn-play"
+                    type="button"
+                    title="Abspielen"
+                    aria-label="Abspielen"
+                    aria-pressed="false"
+                    data-icon="play"
+            >
             </button>
-            <button id="pause-btn" class="icon-btn" type="button" title="Pause" aria-label="Pause">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 7v10M15 7v10" />
-              </svg>
+            <button id="pause-btn"
+                    class="icon-btn icon-btn-pause"
+                    type="button"
+                    title="Pause"
+                    aria-label="Pause"
+                    data-icon="pause"
+            >
             </button>
-            <button id="stop-btn" class="icon-btn" type="button" title="Stop" aria-label="Stop">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="8" y="8" width="8" height="8" rx="1" />
-              </svg>
+            <button id="stop-btn"
+                    class="icon-btn icon-btn-stop"
+                    type="button"
+                    title="Stop"
+                    aria-label="Stop"
+                    data-icon="stop"
+            >
             </button>
-            <button id="next-btn" class="icon-btn" type="button" title="Nächste Folie" aria-label="Nächste Folie">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8.5 7l7 5-7 5V7z" />
-              </svg>
+            <button id="next-btn"
+                    class="icon-btn icon-btn-next"
+                    type="button"
+                    title="Nächste Folie"
+                    aria-label="Nächste Folie"
+                    data-icon="next"
+            >
             </button>
-            <button id="last-btn" class="icon-btn" type="button" title="Letzte Folie" aria-label="Letzte Folie">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 6v12M10 7l6 5-6 5V7z" />
-              </svg>
+            <button id="last-btn"
+                    class="icon-btn icon-btn-last"
+                    type="button"
+                    title="Letzte Folie"
+                    aria-label="Letzte Folie"
+                    data-icon="last"
+            >
             </button>
           </div>
           <div class="toolbar-group">
@@ -115,12 +136,8 @@
               aria-label="Audiotext einblenden"
               aria-expanded="false"
               aria-pressed="false"
+              data-icon="eye"
             >
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z" />
-                <circle cx="12" cy="12" r="2.8" />
-                <path class="transcript-eye-slash" d="M4 4l16 16" />
-              </svg>
             </button>
             <label for="goto-input">Gehe zu</label>
             <input id="goto-input" type="number" min="1" step="1" value="1">

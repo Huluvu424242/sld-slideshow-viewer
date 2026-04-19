@@ -170,11 +170,11 @@ button:disabled {
     stroke: none;
 }
 
-.icon-btn--transcript .transcript-eye-slash {
+.icon-btn--transcript .eye-slash {
     display: none;
 }
 
-.icon-btn--transcript.is-open .transcript-eye-slash {
+.icon-btn--transcript.is-open .eye-slash {
     display: block;
 }
 
