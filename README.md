@@ -173,6 +173,7 @@ Eingeschränkt:
 Aktuell werden folgende Bibliotheken verwendet:
 
 * `marked` (Markdown Parser)
+* `DOMPurify` (Sanitizing von gerendertem HTML)
 * `JSZip` (ZIP/SLD Verarbeitung)
 
 👉 Details siehe:
