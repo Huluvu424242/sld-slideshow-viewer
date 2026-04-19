@@ -24,7 +24,15 @@ import {
     startSwipeTracking,
     updateSwipeTracking,
 } from './swipe.js';
-import {initializeIcons, setIcon} from './icons.js';
+import {initializeIcons} from './icons.js';
+import {
+    collectLayoutElements,
+    registerLayoutLifecycleHooks,
+    renderShowtimeCountdown as renderLayoutShowtimeCountdown,
+    renderShowtimeDash as renderLayoutShowtimeDash,
+    renderSpeakingIndicator as renderLayoutSpeakingIndicator,
+    updateTranscriptToggleButton,
+} from './layout.js';
 
 const state = createInitialState();
 let slideAdvanceTimer = null;
@@ -46,64 +54,67 @@ const tapState = {
     lastTapY: 0,
 };
 
-const elements = {
-    deckTitle: document.querySelector('#deck-title'),
-    slideCounter: document.querySelector('#slide-counter'),
-    sourceKind: document.querySelector('#source-kind'),
-    audioStatus: document.querySelector('#audio-status'),
-    errorBox: document.querySelector('#error-box'),
-    slideList: document.querySelector('#slide-list'),
-    slideStage: document.querySelector('#slide-stage'),
-    gotoInput: document.querySelector('#goto-input'),
-    showtimeCountdown: document.querySelector('#showtime-countdown'),
-    transcriptToggleBtn: document.querySelector('#transcript-toggle-btn'),
-    transcriptPanel: document.querySelector('#transcript-panel'),
-    transcriptHint: document.querySelector('#transcript-hint'),
-    transcriptText: document.querySelector('#transcript-text'),
-    transcriptAudioPlayer: document.querySelector('#transcript-audio-player'),
-    autoplayNextCheckbox: document.querySelector('#autoplay-next-checkbox'),
-    remoteUrlInput: document.querySelector('#remote-url-input'),
-    zipInput: document.querySelector('#zip-input'),
-    pickDirectoryBtn: document.querySelector('#pick-directory-btn'),
-    loadRemoteBtn: document.querySelector('#load-remote-btn'),
-    firstBtn: document.querySelector('#first-btn'),
-    prevBtn: document.querySelector('#prev-btn'),
-    playBtn: document.querySelector('#play-btn'),
-    pauseBtn: document.querySelector('#pause-btn'),
-    stopBtn: document.querySelector('#stop-btn'),
-    nextBtn: document.querySelector('#next-btn'),
-    lastBtn: document.querySelector('#last-btn'),
-    gotoBtn: document.querySelector('#goto-btn'),
-};
-
-const audioController = new AudioController({
-    onStatusChange(status) {
-        elements.audioStatus.textContent = status;
-        if (status.startsWith('Spielt')) {
-            renderSpeakingIndicator();
-        } else if (!showtimeCountdownInterval) {
-            renderShowtimeDash();
-        }
-    },
-    async onEnded() {
-        await handleSlidePlaybackCompleted();
-    },
-    onFallbackTimerStart(seconds) {
-        if (!state.autoAdvance) {
-            return;
-        }
-        setPlayButtonActive(true);
-        startShowtimeCountdown(null, {seconds});
-    },
-    onAudioIssue(message) {
-        showError(`⚠️ ${message}`);
-    },
-});
-
-initializeIcons()
+const {elements, audioController} = await initializeApplication();
+registerLifecycleHooks();
+initializeIcons();
 bindEvents();
 refreshUi();
 await initializeFromQueryParameters();
+
+async function initializeApplication() {
+    const resolvedElements = collectLayoutElements();
+    const resolvedAudioController = createAudioController(resolvedElements);
+
+    return {
+        elements: resolvedElements,
+        audioController: resolvedAudioController,
+    };
+}
+
+function createAudioController(resolvedElements) {
+    return new AudioController({
+        onStatusChange(status) {
+            resolvedElements.audioStatus.textContent = status;
+            if (status.startsWith('Spielt')) {
+                renderSpeakingIndicator();
+            } else if (!showtimeCountdownInterval) {
+                renderShowtimeDash();
+            }
+        },
+        async onEnded() {
+            await handleSlidePlaybackCompleted();
+        },
+        onFallbackTimerStart(seconds) {
+            if (!state.autoAdvance) {
+                return;
+            }
+            setPlayButtonActive(true);
+            startShowtimeCountdown(null, {seconds});
+        },
+        onAudioIssue(message) {
+            showError(`⚠️ ${message}`);
+        },
+    });
+}
+
+function registerLifecycleHooks() {
+    registerLayoutLifecycleHooks({
+        onVisibilityHidden() {
+            resetSwipeState(swipeState);
+            resetTapState();
+        },
+        onBeforeUnload() {
+            cleanupApplication();
+        },
+    });
+}
+
+function cleanupApplication() {
+    clearSlideAdvanceTimer();
+    clearShowtimeCountdown();
+    clearTransitionUnlockTimer();
+    nonAudioPlaybackRemainingSeconds = null;
+}
 
 function bindEvents() {
     elements.pickDirectoryBtn.addEventListener('click', async () => {
@@ -372,32 +383,15 @@ function getSlideShowtimeSeconds(slide) {
 }
 
 function renderShowtimeCountdown(value) {
-    if (!elements.showtimeCountdown) {
-        return;
-    }
-
-    const safeValue = Math.max(0, Math.floor(value));
-    elements.showtimeCountdown.textContent = String(safeValue);
-    elements.showtimeCountdown.classList.remove('is-speaking');
-    elements.showtimeCountdown.classList.toggle('is-safe', safeValue > 3);
-    elements.showtimeCountdown.classList.toggle('is-danger', safeValue <= 3);
+    renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
 }
 
 function renderShowtimeDash() {
-    if (!elements.showtimeCountdown) {
-        return;
-    }
-    elements.showtimeCountdown.textContent = '–';
-    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    renderLayoutShowtimeDash(elements.showtimeCountdown);
 }
 
 function renderSpeakingIndicator() {
-    if (!elements.showtimeCountdown) {
-        return;
-    }
-    setIcon(elements.showtimeCountdown, 'speaking_head');
-    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
-    elements.showtimeCountdown.classList.add('is-speaking');
+    renderLayoutSpeakingIndicator(elements.showtimeCountdown);
 }
 
 function showSlideChangeCueIndicator() {
@@ -841,18 +835,14 @@ async function toggleTranscriptPanel() {
 
 function setTranscriptPanelVisibility(isVisible) {
     elements.transcriptPanel.classList.toggle('hidden', !isVisible);
-    elements.transcriptToggleBtn.setAttribute('aria-expanded', String(isVisible));
-    elements.transcriptToggleBtn.setAttribute('aria-pressed', String(isVisible));
-    elements.transcriptToggleBtn.classList.toggle('is-open', isVisible);
-    const tooltipText = isVisible ? 'Audiotext ausblenden' : 'Audiotext einblenden';
-    elements.transcriptToggleBtn.title = tooltipText;
-    elements.transcriptToggleBtn.setAttribute('aria-label', tooltipText);
+    updateTranscriptToggleButton(elements.transcriptToggleBtn, isVisible);
 }
 
 function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
     elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    // elements.playerToolbar?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
 function clearTranscriptPanelContent() {
