@@ -96,11 +96,12 @@ Remote-Zugriffe funktionieren nur, wenn der Server **CORS erlaubt**.
 
 ### Eigenschaften
 
-| Feld       | Beschreibung                            |
-| ---------- | --------------------------------------- |
-| `content`  | Markdown- oder WM-Datei                 |
-| `audio`    | optional (Audio oder Text/SSML)         |
-| `showtime` | Dauer in Sekunden (Fallback / Autoplay) |
+| Feld       | Pflicht                | Beschreibung          |
+| ---------- |------------------------| --------------------- |
+| `id`       | optional               | eindeutige ID         |
+| `content`  | ja                     | Pfad zur Inhaltsdatei |
+| `audio`    | optional wenn showtime | Audioquelle           |
+| `showtime` | optional wenn audio    | Dauer in Sekunden     |
 
 ➡️ Eine Folie benötigt **entweder Audio oder showtime**
 
