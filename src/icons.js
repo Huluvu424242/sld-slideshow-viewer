@@ -118,7 +118,7 @@ export const ICONS = Object.freeze({
      */
     next: `
     <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 6v12M10 7l6 5-6 5V7z"></path>
+        <path d="M8.5 7l7 5-7 5V7z" />
     </svg>
   `,
     /*
