@@ -34,7 +34,6 @@ import {
     updateTranscriptToggleButton,
 } from './layout.js';
 
-const state = createInitialState();
 let slideAdvanceTimer = null;
 let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
@@ -47,34 +46,38 @@ const DOUBLE_TAP_MAX_DRIFT_PX = 56;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
-const swipeState = createSwipeState();
 const tapState = {
     lastTapTimestamp: 0,
     lastTapX: 0,
     lastTapY: 0,
 };
 
-const {elements, audioController} = await initializeApplication();
-registerLifecycleHooks();
-initializeIcons();
-bindEvents();
-refreshUi();
-await initializeFromQueryParameters();
+const {state, elements, audioController, swipeState} = await onInit();
 
-async function initializeApplication() {
+async function onInit() {
+    const resolvedState = createInitialState();
     const resolvedElements = collectLayoutElements();
-    const resolvedAudioController = createAudioController(resolvedElements);
+    const resolvedAudioController = createAudioController(resolvedElements, resolvedState);
+    const resolvedSwipeState = createSwipeState();
+
+    registerLifecycleHooks(resolvedSwipeState);
+    initializeIcons();
+    bindEvents(resolvedElements, resolvedAudioController, resolvedState, resolvedSwipeState);
+    refreshUi(resolvedElements, resolvedState);
+    await initializeFromQueryParameters(resolvedElements);
 
     return {
+        state: resolvedState,
         elements: resolvedElements,
         audioController: resolvedAudioController,
+        swipeState: resolvedSwipeState,
     };
 }
 
-function createAudioController(resolvedElements) {
+function createAudioController(layoutElements, appState = state) {
     return new AudioController({
         onStatusChange(status) {
-            resolvedElements.audioStatus.textContent = status;
+            layoutElements.audioStatus.textContent = status;
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
             } else if (!showtimeCountdownInterval) {
@@ -85,7 +88,7 @@ function createAudioController(resolvedElements) {
             await handleSlidePlaybackCompleted();
         },
         onFallbackTimerStart(seconds) {
-            if (!state.autoAdvance) {
+            if (!appState.autoAdvance) {
                 return;
             }
             setPlayButtonActive(true);
@@ -97,10 +100,10 @@ function createAudioController(resolvedElements) {
     });
 }
 
-function registerLifecycleHooks() {
+function registerLifecycleHooks(runtimeSwipeState = swipeState) {
     registerLayoutLifecycleHooks({
         onVisibilityHidden() {
-            resetSwipeState(swipeState);
+            resetSwipeState(runtimeSwipeState);
             resetTapState();
         },
         onBeforeUnload() {
@@ -116,7 +119,17 @@ function cleanupApplication() {
     nonAudioPlaybackRemainingSeconds = null;
 }
 
-function bindEvents() {
+function bindEvents(
+    runtimeElements = elements,
+    runtimeAudioController = audioController,
+    runtimeState = state,
+    runtimeSwipeState = swipeState,
+) {
+    const elements = runtimeElements;
+    const audioController = runtimeAudioController;
+    const state = runtimeState;
+    const swipeState = runtimeSwipeState;
+
     elements.pickDirectoryBtn.addEventListener('click', async () => {
         await withErrorHandling(async () => {
             const deck = await loadDeckFromDirectory();
@@ -522,7 +535,7 @@ async function playPresentationEndCueWithIndicator() {
     await delay(cueDurationSeconds * 1000);
 }
 
-async function initializeFromQueryParameters() {
+async function initializeFromQueryParameters(runtimeElements = elements) {
     const params = new URLSearchParams(window.location.search);
     const remoteUrl = params.get('url')?.trim();
 
@@ -530,7 +543,7 @@ async function initializeFromQueryParameters() {
         return;
     }
 
-    elements.remoteUrlInput.value = remoteUrl;
+    runtimeElements.remoteUrlInput.value = remoteUrl;
 
     await withErrorHandling(async () => {
         const deck = await loadDeckFromRemote(remoteUrl);
@@ -791,7 +804,9 @@ function renderSlideList() {
     elements.slideList.append(fragment);
 }
 
-function refreshUi() {
+function refreshUi(runtimeElements = elements, runtimeState = state) {
+    const elements = runtimeElements;
+    const state = runtimeState;
     const slideCount = state.deck?.slides.length ?? 0;
     const currentSlide = state.deck?.slides[state.currentIndex];
     elements.deckTitle.textContent = state.deck?.title ?? '–';
