@@ -270,7 +270,10 @@ Ziel ist es, einen **leichtgewichtigen, offenen Präsentationsstandard** zu scha
 * GitHub:
   https://github.com/Huluvu424242/sld-slideshow-viewer
 
-* Beispiel-Slides:
+* Beispiel Präsentation mit Viewer Aufruf
+  https://huluvu424242.github.io/sld-slideshow-viewer/?url=https://huluvu424242.github.io/foile-pile/explainations/mesh/meshnetze/slides.json
+
+* Weitere Slides Sammlung:
   https://huluvu424242.github.io/foile-pile/
 
 ---
