@@ -52,6 +52,7 @@ const elements = {
     sourceKind: document.querySelector('#source-kind'),
     audioStatus: document.querySelector('#audio-status'),
     errorBox: document.querySelector('#error-box'),
+    playerToolbar: document.querySelector('#player-toolbar'),
     slideList: document.querySelector('#slide-list'),
     slideStage: document.querySelector('#slide-stage'),
     gotoInput: document.querySelector('#goto-input'),
@@ -853,6 +854,7 @@ function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
     elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    // elements.playerToolbar?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
 function clearTranscriptPanelContent() {
