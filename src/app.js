@@ -34,47 +34,43 @@ import {
     updateTranscriptToggleButton,
 } from './layout.js';
 
-const state = createInitialState();
-let slideAdvanceTimer = null;
-let showtimeCountdownInterval = null;
-let slideChangeCueAudioContext = null;
-let nonAudioPlaybackRemainingSeconds = null;
-let slideChangeCueIndicatorToken = 0;
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
 const DOUBLE_TAP_MAX_DRIFT_PX = 56;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
-let isSlideTransitionInProgress = false;
-let transitionUnlockTimer = null;
-const swipeState = createSwipeState();
 const tapState = {
     lastTapTimestamp: 0,
     lastTapX: 0,
     lastTapY: 0,
 };
+const state = createInitialState();
+const swipeState = createSwipeState();
+const elements=collectLayoutElements();
+const audioController=createAudioController();
 
-const {elements, audioController} = await initializeApplication();
-registerLifecycleHooks();
-initializeIcons();
-bindEvents();
-refreshUi();
-await initializeFromQueryParameters();
+let slideAdvanceTimer = null;
+let showtimeCountdownInterval = null;
+let slideChangeCueAudioContext = null;
+let nonAudioPlaybackRemainingSeconds = null;
+let slideChangeCueIndicatorToken = 0;
+let isSlideTransitionInProgress = false;
+let transitionUnlockTimer = null;
 
-async function initializeApplication() {
-    const resolvedElements = collectLayoutElements();
-    const resolvedAudioController = createAudioController(resolvedElements);
+await initApp();
 
-    return {
-        elements: resolvedElements,
-        audioController: resolvedAudioController,
-    };
+async function initApp() {
+    registerLifecycleHooks();
+    initializeIcons();
+    bindEvents();
+    refreshUi();
+    await initializeFromQueryParameters();
 }
 
-function createAudioController(resolvedElements) {
+function createAudioController() {
     return new AudioController({
         onStatusChange(status) {
-            resolvedElements.audioStatus.textContent = status;
+            elements.audioStatus.textContent = status;
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
             } else if (!showtimeCountdownInterval) {
