@@ -254,6 +254,106 @@ python -m http.server
 ```
 
 ---
+## 🌐 Nutzung auf Webservern (z. B. nginx)
+
+Damit `.sld`-Dateien korrekt ausgeliefert werden, sollte dein Webserver einen passenden MIME-Type setzen.
+
+### 📦 Empfohlener MIME-Type (aktuell)
+
+```text
+application/vnd.sld.slideshow+zip
+```
+
+Dieser MIME-Type ist aktuell **noch nicht offiziell registriert**, folgt aber der gängigen Konvention für Vendor-Formate (`vnd.*`) und kann problemlos verwendet werden.
+
+---
+
+## ⚙️ Beispiel: nginx Konfiguration
+
+Füge in deiner nginx-Konfiguration (z. B. `mime.types` oder `nginx.conf`) folgenden Eintrag hinzu:
+
+```nginx
+types {
+    application/vnd.sld.slideshow+zip sld;
+}
+```
+
+Oder innerhalb eines Server-Blocks:
+
+```nginx
+location ~ \.sld$ {
+    add_header Content-Type application/vnd.sld.slideshow+zip;
+}
+```
+
+---
+
+## 🚀 Beispiel: Hosting einer Slideshow
+
+Angenommen, deine Datei liegt hier:
+
+```text
+https://example.org/slides/demo.sld
+```
+
+Dann kannst du den Viewer so aufrufen:
+
+```text
+https://huluvu424242.github.io/sld-slideshow-viewer/?url=https://example.org/slides/demo.sld
+```
+
+---
+
+## ⚠️ Wichtige Hinweise
+
+### CORS (Cross-Origin Requests)
+
+Wenn du `.sld`-Dateien von einem anderen Server lädst, muss dieser CORS erlauben:
+
+```nginx
+add_header Access-Control-Allow-Origin *;
+```
+
+Ohne diese Einstellung kann der Browser die Datei nicht laden.
+
+---
+
+### Content-Type ist entscheidend
+
+Wenn der MIME-Type **nicht gesetzt ist**, passiert oft:
+
+* Datei wird als `application/zip` behandelt
+* oder Download statt Anzeige
+* oder Fehler beim Laden im Viewer
+
+👉 Daher unbedingt korrekt konfigurieren
+
+---
+
+## 🔮 Zukunft
+
+Langfristig ist geplant, den MIME-Type offiziell registrieren zu lassen.
+Bis dahin gilt:
+
+```text
+application/vnd.sld.slideshow+zip
+```
+
+als empfohlener Standard.
+
+---
+
+## 💡 Optional: Fallback
+
+Falls dein Server keine MIME-Anpassung erlaubt, kannst du als Fallback auch verwenden:
+
+```text
+application/zip
+```
+
+Der Viewer erkennt `.sld` trotzdem korrekt, da es sich technisch um ein ZIP-Archiv handelt.
+
+---
 
 ## 📌 Roadmap (Auszug)
 
