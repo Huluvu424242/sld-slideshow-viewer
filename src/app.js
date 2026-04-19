@@ -201,8 +201,8 @@ function bindEvents() {
         if (event.target instanceof HTMLInputElement) {
             return;
         }
-        if (event.key === 'ArrowRight') await goToSlide(state.currentIndex - 1);
-        if (event.key === 'ArrowLeft') await goToSlide(state.currentIndex + 1);
+        if (event.key === 'ArrowLeft') await goToSlide(state.currentIndex - 1);
+        if (event.key === 'ArrowRight') await goToSlide(state.currentIndex + 1);
         if (event.key === 'Home') await goToSlide(0);
         if (event.key === 'End') await goToSlide(state.deck?.slides.length - 1 ?? -1);
         if (event.key === ' ') {
