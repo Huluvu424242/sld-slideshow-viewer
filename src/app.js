@@ -24,6 +24,7 @@ import {
     startSwipeTracking,
     updateSwipeTracking,
 } from './swipe.js';
+import {initializeIcons} from "./icons.js";
 
 const state = createInitialState();
 let slideAdvanceTimer = null;
@@ -99,6 +100,7 @@ const audioController = new AudioController({
     },
 });
 
+initializeIcons()
 bindEvents();
 refreshUi();
 await initializeFromQueryParameters();
