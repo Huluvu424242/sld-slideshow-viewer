@@ -211,19 +211,34 @@ function bindEvents() {
         }
     });
 
-    elements.slideStage.addEventListener('touchstart', handleTouchStart, {passive: true});
-    elements.slideStage.addEventListener('touchmove', handleTouchMove, {passive: true});
-    elements.slideStage.addEventListener('touchend', (event) => {
+    registerStageInteractionArea(elements.slideStage);
+    registerStageInteractionArea(elements.transcriptPanel);
+    registerStageInteractionArea(elements.errorBox);
+}
+
+function registerStageInteractionArea(element) {
+    if (!element) {
+        return;
+    }
+    element.addEventListener('touchstart', handleTouchStart, {passive: true});
+    element.addEventListener('touchmove', handleTouchMove, {passive: true});
+    element.addEventListener('touchend', (event) => {
         void handleTouchEnd(event);
     }, {passive: true});
-    elements.slideStage.addEventListener('touchcancel', () => {
+    element.addEventListener('touchcancel', () => {
         clearSingleTouchActionTimer();
         resetSwipeState(swipeState);
     }, {passive: true});
-    elements.slideStage.addEventListener('click', (event) => {
+    element.addEventListener('click', (event) => {
         void handleStageClick(event);
     });
-    elements.slideStage.addEventListener('dblclick', handleStageDoubleClick);
+    element.addEventListener('dblclick', handleStageDoubleClick);
+}
+
+function isInteractiveControlTarget(target) {
+    return target instanceof HTMLInputElement
+        || target instanceof HTMLButtonElement
+        || target instanceof HTMLAudioElement;
 }
 
 function keepPlaybackButtonFocus() {
@@ -237,7 +252,7 @@ function handleTouchStart(event) {
         resetSwipeState(swipeState);
         return;
     }
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+    if (isInteractiveControlTarget(event.target)) {
         resetSwipeState(swipeState);
         return;
     }
@@ -310,7 +325,7 @@ async function handleStageClick(event) {
     if (Date.now() - lastTouchInteractionTimestamp <= DOUBLE_TAP_INTERVAL_MS * 2) {
         return;
     }
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+    if (isInteractiveControlTarget(event.target)) {
         return;
     }
     if (event.detail > 1) {
@@ -328,7 +343,7 @@ function handleStageDoubleClick(event) {
     if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
         return;
     }
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+    if (isInteractiveControlTarget(event.target)) {
         return;
     }
 
