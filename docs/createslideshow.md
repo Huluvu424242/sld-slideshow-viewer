@@ -4,6 +4,10 @@ Diese Anleitung beschreibt, wie eine Slideshow für den Viewer aufgebaut wird.
 
 Ziel ist es, mit minimalem Aufwand einen Foliensatz zu erstellen, der aus Text (Markdown oder Wiki) und optionalem Audio besteht.
 
+> Ergänzende Referenzen:
+> - Detaillierte Feldbeschreibung: [`docs/manifest.md`](./manifest.md)
+> - Formatrahmen: [`docs/sld-spec.md`](./sld-spec.md)
+
 ---
 
 ## Grundprinzip

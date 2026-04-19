@@ -2,72 +2,64 @@
 
 ## Grundidee
 
-Die Anwendung ist bewusst als reine statische Browser-Anwendung aufgebaut.
+Die Anwendung ist bewusst als rein statische Browser-Anwendung aufgebaut:
 
 - kein Backend
 - keine Datenbank
 - deploymentfähig auf GitHub Pages
-- lokale Nutzung per Verzeichnis oder ZIP
+- lokale Nutzung per Verzeichnis oder SLD/ZIP
 
 ## Module
 
 ### `src/app.js`
 
-Zentrale UI-Logik:
+Zentrale UI- und Ablaufsteuerung:
 
-- Event-Handler
-- Foliennavigation
-- Laden der Slideshow
-- Zusammenspiel von Renderer und Audio
+- Event-Handling und Navigation
+- Laden der Slideshow über die Loader
+- Synchronisation von Audio, Showtime und UI-Status
 
 ### `src/loaders.js`
 
 Abstraktion für Datenquellen:
 
 - lokales Verzeichnis
-- lokales ZIP
+- lokales SLD/ZIP
 - Remote-Manifest
-- Remote-ZIP
+- Remote-SLD/ZIP
 
-Die Loader liefern ein einheitliches Deck-Objekt mit:
-
-- Metadaten
-- geladenen Folieninhalten
-- Asset-Resolver
-- Audiozugriff
+Die Loader liefern ein einheitliches Deck-Objekt mit Folieninhalt, Metadaten und Asset-Resolver.
 
 ### `src/wiki-parser.js`
 
 Renderer für:
 
-- Markdown via `marked`
+- Markdown (`marked` + `DOMPurify`)
 - vereinfachtes Wiki-Markup (`.wm`)
 
-### `src/audio.js`
+### `src/audio.js` und `src/transcript.js`
 
-Audio-Abstraktion für:
+Audio- und Transkriptabstraktion für:
 
-- Browser-TTS
-- SSML-Abbau auf sprechbaren Text
-- MP3-Wiedergabe
+- Browser-TTS (Text/SSML)
+- MP3-/Audio-Playback
+- Fallbacks und Anzeige von Audioinhalt im Transcript-Panel
+
+### `src/layout.js`, `src/icons.js`, `src/swipe.js`, `src/error.js`
+
+UI-Helfermodule für:
+
+- Layout/Toolbar/Countdown
+- Icon-Initialisierung
+- Touch-/Swipe-Bedienung
+- konsistente Fehlerdarstellung
 
 ## Wichtige technische Entscheidungen
 
-### 1. ZIP-Unterstützung im Browser
-
-ZIP-Dateien werden im Browser mit `JSZip` gelesen. Dadurch bleibt die App serverlos.
-
-### 2. Lokales Verzeichnis
-
-Das Öffnen lokaler Verzeichnisse nutzt die File System Access API. Das ist praktisch, aber nicht in jedem Browser verfügbar.
-
-### 3. Audio
-
-Für MP3 nutzt das Gerüst absichtlich die eingebaute Browser-Audiowiedergabe statt sich an eine alte, archivierte Spezialbibliothek zu koppeln. Popcorn.js wurde von Mozilla archiviert und ist seit dem 29. Juni 2018 read-only. citeturn331253search2turn331253search6
-
-### 4. SSML
-
-Die Browser-TTS-APIs sind uneinheitlich. Deshalb behandelt das Gerüst SSML pragmatisch: Tags werden entfernt und der verbleibende Text gesprochen. Das ist als Startpunkt brauchbar, aber noch kein vollständiger SSML-Interpreter.
+1. **ZIP-Unterstützung im Browser:** SLD/ZIP werden im Browser mit `JSZip` gelesen.
+2. **Lokales Verzeichnis:** Öffnen über File System Access API (v. a. in Chromium-basierten Browsern).
+3. **Audio-Wiedergabe:** Native Browser-Audio- und TTS-APIs statt zusätzlicher Legacy-Abhängigkeiten.
+4. **SSML-Strategie:** Der Viewer nutzt eine pragmatische SSML-Verarbeitung als robusten Startpunkt.
 
 ## Erweiterungspunkte
 
