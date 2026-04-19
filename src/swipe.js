@@ -1,5 +1,6 @@
 export const SWIPE_MIN_HORIZONTAL_DISTANCE_PX = 45;
-export const SWIPE_MAX_VERTICAL_DRIFT_PX = 120;
+export const SWIPE_MIN_VERTICAL_DISTANCE_PX = 45;
+export const SWIPE_MAX_ORTHOGONAL_DRIFT_PX = 120;
 
 export function createSwipeState() {
     return {
@@ -30,12 +31,17 @@ export function finishSwipe(state, changedTouch) {
     const horizontalDistance = endX - state.startX;
     const verticalDistance = endY - state.startY;
     const isHorizontalSwipe = Math.abs(horizontalDistance) >= SWIPE_MIN_HORIZONTAL_DISTANCE_PX
-        && Math.abs(verticalDistance) <= SWIPE_MAX_VERTICAL_DRIFT_PX
+        && Math.abs(verticalDistance) <= SWIPE_MAX_ORTHOGONAL_DRIFT_PX
         && Math.abs(horizontalDistance) > Math.abs(verticalDistance);
+    const isVerticalSwipe = Math.abs(verticalDistance) >= SWIPE_MIN_VERTICAL_DISTANCE_PX
+        && Math.abs(horizontalDistance) <= SWIPE_MAX_ORTHOGONAL_DRIFT_PX
+        && Math.abs(verticalDistance) > Math.abs(horizontalDistance);
 
     return {
         isHorizontalSwipe,
+        isVerticalSwipe,
         horizontalDistance,
+        verticalDistance,
     };
 }
 
