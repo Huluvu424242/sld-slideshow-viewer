@@ -853,7 +853,8 @@ function setTranscriptPanelVisibility(isVisible) {
 function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
-    elements.playerToolbar?.scrollIntoView({behavior: 'auto', block: 'start'});
+    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    // elements.playerToolbar?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
 function clearTranscriptPanelContent() {
