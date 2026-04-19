@@ -37,6 +37,8 @@ import {
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
+const DOUBLE_TAP_INTERVAL_MS = 320;
+const SINGLE_TAP_MAX_MOVEMENT_PX = 12;
 const state = createInitialState();
 const swipeState = createSwipeState();
 const elements=collectLayoutElements();
@@ -51,6 +53,10 @@ let slideChangeCueIndicatorToken = 0;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
 let hasPresentationStarted = false;
+let singleTouchActionTimer = null;
+let singleClickActionTimer = null;
+let lastTouchTapTimestamp = 0;
+let lastTouchInteractionTimestamp = 0;
 
 await initApp();
 
@@ -103,6 +109,8 @@ function cleanupApplication() {
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
     clearTransitionUnlockTimer();
+    clearSingleTouchActionTimer();
+    clearSingleClickActionTimer();
     nonAudioPlaybackRemainingSeconds = null;
 }
 
@@ -193,8 +201,8 @@ function bindEvents() {
         if (event.target instanceof HTMLInputElement) {
             return;
         }
-        if (event.key === 'ArrowRight') await goToSlide(state.currentIndex + 1);
-        if (event.key === 'ArrowLeft') await goToSlide(state.currentIndex - 1);
+        if (event.key === 'ArrowRight') await goToSlide(state.currentIndex - 1);
+        if (event.key === 'ArrowLeft') await goToSlide(state.currentIndex + 1);
         if (event.key === 'Home') await goToSlide(0);
         if (event.key === 'End') await goToSlide(state.deck?.slides.length - 1 ?? -1);
         if (event.key === ' ') {
@@ -209,8 +217,13 @@ function bindEvents() {
         void handleTouchEnd(event);
     }, {passive: true});
     elements.slideStage.addEventListener('touchcancel', () => {
+        clearSingleTouchActionTimer();
         resetSwipeState(swipeState);
     }, {passive: true});
+    elements.slideStage.addEventListener('click', (event) => {
+        void handleStageClick(event);
+    });
+    elements.slideStage.addEventListener('dblclick', handleStageDoubleClick);
 }
 
 function keepPlaybackButtonFocus() {
@@ -229,6 +242,7 @@ function handleTouchStart(event) {
         return;
     }
     const touch = event.touches[0];
+    lastTouchInteractionTimestamp = Date.now();
     startSwipeTracking(swipeState, touch);
 }
 
@@ -245,6 +259,7 @@ async function handleTouchEnd(event) {
         resetSwipeState(swipeState);
         return;
     }
+    lastTouchInteractionTimestamp = Date.now();
 
     const changedTouch = event.changedTouches?.[0];
     const {isHorizontalSwipe, isVerticalSwipe, horizontalDistance, verticalDistance} = finishSwipe(swipeState, changedTouch);
@@ -253,11 +268,11 @@ async function handleTouchEnd(event) {
 
     if (isHorizontalSwipe) {
         if (horizontalDistance > 0) {
-            await goToSlide(state.currentIndex + 1);
+            await goToSlide(state.currentIndex - 1);
             return;
         }
 
-        await goToSlide(state.currentIndex - 1);
+        await goToSlide(state.currentIndex + 1);
         return;
     }
 
@@ -270,7 +285,83 @@ async function handleTouchEnd(event) {
         return;
     }
 
-    await togglePresentationByTouch();
+    const isTap = Math.abs(horizontalDistance) <= SINGLE_TAP_MAX_MOVEMENT_PX
+        && Math.abs(verticalDistance) <= SINGLE_TAP_MAX_MOVEMENT_PX;
+    if (!isTap) {
+        return;
+    }
+
+    const now = Date.now();
+    const isDoubleTap = now - lastTouchTapTimestamp <= DOUBLE_TAP_INTERVAL_MS;
+    lastTouchTapTimestamp = now;
+    if (isDoubleTap) {
+        clearSingleTouchActionTimer();
+        scrollToSlideStageTop();
+        return;
+    }
+
+    scheduleSingleTouchToggle();
+}
+
+async function handleStageClick(event) {
+    if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
+        return;
+    }
+    if (Date.now() - lastTouchInteractionTimestamp <= DOUBLE_TAP_INTERVAL_MS * 2) {
+        return;
+    }
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+        return;
+    }
+    if (event.detail > 1) {
+        return;
+    }
+
+    clearSingleClickActionTimer();
+    singleClickActionTimer = window.setTimeout(() => {
+        singleClickActionTimer = null;
+        void togglePresentationByTouch();
+    }, DOUBLE_TAP_INTERVAL_MS);
+}
+
+function handleStageDoubleClick(event) {
+    if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
+        return;
+    }
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+        return;
+    }
+
+    clearSingleClickActionTimer();
+    scrollToSlideStageTop();
+}
+
+function scheduleSingleTouchToggle() {
+    clearSingleTouchActionTimer();
+    singleTouchActionTimer = window.setTimeout(() => {
+        singleTouchActionTimer = null;
+        void togglePresentationByTouch();
+    }, DOUBLE_TAP_INTERVAL_MS);
+}
+
+function clearSingleTouchActionTimer() {
+    if (!singleTouchActionTimer) {
+        return;
+    }
+    window.clearTimeout(singleTouchActionTimer);
+    singleTouchActionTimer = null;
+}
+
+function clearSingleClickActionTimer() {
+    if (!singleClickActionTimer) {
+        return;
+    }
+    window.clearTimeout(singleClickActionTimer);
+    singleClickActionTimer = null;
+}
+
+function scrollToSlideStageTop() {
+    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
 function clearSlideAdvanceTimer() {
@@ -878,7 +969,7 @@ function setTranscriptPanelVisibility(isVisible) {
 function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
-    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    scrollToSlideStageTop();
     // elements.playerToolbar?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
@@ -990,3 +1081,6 @@ function escapeHtml(value) {
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
 }
+    if (Date.now() - lastTouchInteractionTimestamp <= DOUBLE_TAP_INTERVAL_MS * 2) {
+        return;
+    }
