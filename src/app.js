@@ -1081,6 +1081,3 @@ function escapeHtml(value) {
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
 }
-    if (Date.now() - lastTouchInteractionTimestamp <= DOUBLE_TAP_INTERVAL_MS * 2) {
-        return;
-    }
