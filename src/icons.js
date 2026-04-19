@@ -45,7 +45,7 @@
 export const ICONS = Object.freeze({
     /*
      * Icon: first
-     * Copyright: Huluvu424242
+     * Autor: Huluvu424242
      * Lizenz: MIT
      * Quelle: selbst erstellt
      */
@@ -56,7 +56,7 @@ export const ICONS = Object.freeze({
     `,
     /*
     * Icon: last
-    * Copyright: Huluvu424242
+    * Autor: Huluvu424242
     * Lizenz: MIT
     * Quelle: selbst erstellt
     */
@@ -67,7 +67,7 @@ export const ICONS = Object.freeze({
     `,
     /*
      * Icon: play
-     * Copyright: Huluvu424242
+     * Autor: Huluvu424242
      * Lizenz: MIT
      * Quelle: selbst erstellt
      */
@@ -79,7 +79,7 @@ export const ICONS = Object.freeze({
   `,
     /*
       * Icon: pause
-      * Copyright: Huluvu424242
+      * Autor: Huluvu424242
       * Lizenz: MIT
       * Quelle: selbst erstellt
       */
@@ -90,7 +90,7 @@ export const ICONS = Object.freeze({
   `,
     /*
       * Icon: stop
-      * Copyright: Huluvu424242
+      * Autor: Huluvu424242
       * Lizenz: MIT
       * Quelle: selbst erstellt
       */
@@ -101,7 +101,7 @@ export const ICONS = Object.freeze({
   `,
     /*
     * Icon: prev
-    * Copyright: Huluvu424242
+    * Autor: Huluvu424242
     * Lizenz: MIT
     * Quelle: selbst erstellt
     */
@@ -112,7 +112,7 @@ export const ICONS = Object.freeze({
   `,
     /*
      * Icon: next
-     * Copyright: Huluvu424242
+     * Autor: Huluvu424242
      * Lizenz: MIT
      * Quelle: selbst erstellt
      */
@@ -123,7 +123,7 @@ export const ICONS = Object.freeze({
   `,
     /*
      * Icon: eye
-     * Copyright: Huluvu424242
+     * Autor: Huluvu424242
      * Lizenz: MIT
      * Quelle: selbst erstellt
      */
@@ -136,7 +136,7 @@ export const ICONS = Object.freeze({
   `,
     /*
      * Icon: speaking_head
-     * Copyright: Twitter
+     * Autor: Twitter
      * Lizenz: MIT
      * Quelle: https://www.svgrepo.com/svg/407507/speaking-head
      * Lizenznahme: 16.04.2026
