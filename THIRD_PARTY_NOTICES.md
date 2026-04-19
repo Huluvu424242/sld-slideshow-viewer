@@ -1,6 +1,6 @@
 # Third Party Notices
 
-This project uses the following third-party libraries:
+This project uses the following third-party components (libraries and assets):
 
 ---
 
@@ -93,8 +93,42 @@ SOFTWARE.
 
 ---
 
+
+## 4. Speaking Head Icon (Twemoji via SVG Repo)
+
+- **Name:** speaking_head icon (Twemoji-derived asset)
+- **Version:** asset snapshot (downloaded 2026-04-16)
+- **Source:** https://www.svgrepo.com/svg/407507/speaking-head
+- **Original project:** https://github.com/twitter/twemoji
+- **License:** MIT License
+- **Usage in this project:** adapted SVG used in `src/icons.js`
+
+### License Text (MIT)
+
+Copyright Twitter, Inc and other contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
 ## Notes
 
 - All third-party libraries are loaded via CDN (jsDelivr).
 - No local modifications to third-party source code are made.
-- This document ensures compliance with attribution requirements of the MIT license.
+- This document supports compliance with attribution requirements of MIT/Apache licensed third-party components used in the project.

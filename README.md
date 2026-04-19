@@ -33,6 +33,8 @@ Das Projekt ist bewusst minimal gehalten:
 * **Kein Node.js erforderlich**
 * **Keine Backend-Komponenten**
 
+Eine detaillierte Modulbeschreibung steht in [`docs/architecture.md`](docs/architecture.md).
+
 Technologie:
 
 * HTML + CSS + Vanilla JavaScript
@@ -96,11 +98,12 @@ Remote-Zugriffe funktionieren nur, wenn der Server **CORS erlaubt**.
 
 ### Eigenschaften
 
-| Feld       | Beschreibung                            |
-| ---------- | --------------------------------------- |
-| `content`  | Markdown- oder WM-Datei                 |
-| `audio`    | optional (Audio oder Text/SSML)         |
-| `showtime` | Dauer in Sekunden (Fallback / Autoplay) |
+| Feld       | Pflicht                | Beschreibung          |
+| ---------- |------------------------| --------------------- |
+| `id`       | optional               | eindeutige ID         |
+| `content`  | ja                     | Pfad zur Inhaltsdatei |
+| `audio`    | optional wenn showtime | Audioquelle           |
+| `showtime` | optional wenn audio    | Dauer in Sekunden     |
 
 ➡️ Eine Folie benötigt **entweder Audio oder showtime**
 
@@ -155,7 +158,7 @@ Eingeschränkt:
 ├── src/
 │   ├── app.js
 │   ├── loaders.js
-│   ├── parser.js
+│   ├── wiki-parser.js
 │   ├── audio.js
 │   └── ...
 ├── docs/
@@ -165,6 +168,23 @@ Eingeschränkt:
 ├── THIRD_PARTY_NOTICES.md
 └── .github/workflows/
 ```
+
+---
+
+
+## 📚 Dokumentation
+
+Eine zentrale Übersicht aller Doku-Teile findest du in [`docs/README.md`](docs/README.md).
+
+Direktlinks:
+
+* [Architektur](docs/architecture.md)
+* [Slideshow erstellen](docs/createslideshow.md)
+* [Manifestformat](docs/manifest.md)
+* [SLD-Spezifikation](docs/sld-spec.md)
+* [Dependency Policy](docs/dependency-policy.md)
+* [License Review Checklist](docs/license-review-checklist.md)
+* [Roadmap](docs/roadmap.md)
 
 ---
 

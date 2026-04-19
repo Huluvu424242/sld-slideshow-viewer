@@ -106,12 +106,12 @@ Optional:
 
 ### Slide-Objekt
 
-| Feld       | Pflicht  | Beschreibung          |
-| ---------- | -------- | --------------------- |
-| `id`       | optional | eindeutige ID         |
-| `content`  | ja       | Pfad zur Inhaltsdatei |
-| `audio`    | optional | Audioquelle           |
-| `showtime` | optional | Dauer in Sekunden     |
+| Feld       | Pflicht                | Beschreibung          |
+| ---------- |------------------------| --------------------- |
+| `id`       | optional               | eindeutige ID         |
+| `content`  | ja                     | Pfad zur Inhaltsdatei |
+| `audio`    | optional wenn showtime | Audioquelle           |
+| `showtime` | optional wenn audio    | Dauer in Sekunden     |
 
 **Regel:**
 Mindestens eines muss vorhanden sein:
