@@ -666,11 +666,11 @@ function playPresentationEndCue() {
 
         window.setTimeout(() => {
             playGlockeTone(context, kleineGlocke, {loudness: endCueBellVolume});
-        }, durationHelle * 1000);
+        }, durationHelle * 300);
 
         window.setTimeout(() => {
             playGlockeTone(context, grosseGlocke, {loudness: endCueBellVolume});
-        }, (durationHelle + durationKleine) * 1000);
+        }, (durationHelle + durationKleine) * 300);
 
         return totalDuration;
     } catch (error) {
