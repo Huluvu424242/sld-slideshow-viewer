@@ -57,7 +57,6 @@ let hasPresentationStarted = false;
 let singleTouchActionTimer = null;
 let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
-let lastTouchInteractionTimestamp = 0;
 
 await initApp();
 
@@ -258,7 +257,6 @@ function handleTouchStart(event) {
         return;
     }
     const touch = event.touches[0];
-    lastTouchInteractionTimestamp = Date.now();
     startSwipeTracking(swipeState, touch);
 }
 
@@ -275,7 +273,6 @@ async function handleTouchEnd(event) {
         resetSwipeState(swipeState);
         return;
     }
-    lastTouchInteractionTimestamp = Date.now();
 
     const changedTouch = event.changedTouches?.[0];
     const {isHorizontalSwipe, isVerticalSwipe, horizontalDistance, verticalDistance} = finishSwipe(swipeState, changedTouch);
@@ -319,11 +316,19 @@ async function handleTouchEnd(event) {
     scheduleSingleTouchToggle();
 }
 
+function isTouchGeneratedClickEvent(event) {
+    if (!(event instanceof MouseEvent)) {
+        return false;
+    }
+
+    return event.sourceCapabilities?.firesTouchEvents === true;
+}
+
 async function handleStageClick(event) {
     if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
         return;
     }
-    if (Date.now() - lastTouchInteractionTimestamp <= DOUBLE_TAP_INTERVAL_MS * 2) {
+    if (isTouchGeneratedClickEvent(event)) {
         return;
     }
     if (isInteractiveControlTarget(event.target)) {
