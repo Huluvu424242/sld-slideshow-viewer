@@ -1,5 +1,5 @@
 import {createInitialState} from './state.js';
-import {renderSlideContent} from './parser.js';
+import {renderSlideContent} from './wiki-parser.js';
 import {AudioController} from './audio.js';
 import {loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote} from './loaders.js';
 import {
