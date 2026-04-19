@@ -8,7 +8,7 @@ import {
     SLIDE_CHANGE_BELL_VOLUME,
     playSlideChangeGong,
 } from './gong.js';
-import {helleGlocke, playGlockeTone} from './glocke.js';
+import {grosseGlocke, helleGlocke, kleineGlocke, playGlockeTone} from './glocke.js';
 import {
     canPlayInAudioElement,
     inferAudioType,
@@ -499,16 +499,33 @@ function syncAutoSlideChangeForCurrentSlide() {
 
 async function handleSlidePlaybackCompleted() {
     setPlayButtonActive(false);
-    if (!state.autoAdvance || !state.deck || isSlideTransitionInProgress) {
+    if (!state.deck || isSlideTransitionInProgress) {
         return;
     }
 
-    if (state.currentIndex < state.deck.slides.length - 1) {
+    const isLastSlide = state.currentIndex >= state.deck.slides.length - 1;
+    if (isLastSlide) {
+        await playPresentationEndCueWithIndicator();
+        return;
+    }
+
+    if (state.autoAdvance) {
         await goToSlide(state.currentIndex + 1, {autoplay: true});
+    }
+}
+
+async function playPresentationEndCueWithIndicator() {
+    const cueDurationSeconds = playPresentationEndCue();
+    if (cueDurationSeconds <= 0) {
         return;
     }
 
-    playSlideChangeCueWithIndicator();
+    const indicatorToken = showSlideChangeCueIndicator();
+    window.setTimeout(() => {
+        restoreShowtimeCountdownAfterCue(indicatorToken);
+    }, cueDurationSeconds * 1000);
+
+    await delay(cueDurationSeconds * 1000);
 }
 
 async function initializeFromQueryParameters() {
@@ -622,6 +639,44 @@ function playSlideChangeCueWithIndicator() {
     }, bellDurationSeconds * 1000);
 
     return bellDurationSeconds;
+}
+
+function playPresentationEndCue() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+        return 0;
+    }
+
+    try {
+        if (!slideChangeCueAudioContext) {
+            slideChangeCueAudioContext = new AudioContextClass();
+        }
+        const context = slideChangeCueAudioContext;
+        if (context.state === 'suspended') {
+            context.resume().catch(() => {
+            });
+        }
+
+        const endCueBellVolume = Math.min(1, Math.max(0.0001, SLIDE_CHANGE_BELL_VOLUME / 4));
+        const durationHelle = playGlockeTone(context, helleGlocke, {loudness: endCueBellVolume});
+        const durationKleine = kleineGlocke.duration;
+        const durationGrosse = grosseGlocke.duration;
+
+        const totalDuration = durationHelle + durationKleine + durationGrosse;
+
+        window.setTimeout(() => {
+            playGlockeTone(context, kleineGlocke, {loudness: endCueBellVolume});
+        }, durationHelle * 300);
+
+        window.setTimeout(() => {
+            playGlockeTone(context, grosseGlocke, {loudness: endCueBellVolume});
+        }, (durationHelle + durationKleine) * 300);
+
+        return totalDuration;
+    } catch (error) {
+        console.debug('Presentation-End-Cue konnte nicht abgespielt werden.', error);
+        return 0;
+    }
 }
 
 function delay(durationMs) {
