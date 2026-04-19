@@ -202,6 +202,17 @@ button:disabled {
     color: #6cc0ff;
 }
 
+.showtime-countdown.is-speaking svg {
+    width: 1.15em;
+    height: 1.15em;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.showtime-countdown.is-speaking svg path {
+    fill: currentColor;
+}
+
 input[type="url"],
 input[type="number"] {
     padding: 10px 12px;

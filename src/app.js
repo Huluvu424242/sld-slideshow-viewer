@@ -24,7 +24,7 @@ import {
     startSwipeTracking,
     updateSwipeTracking,
 } from './swipe.js';
-import {initializeIcons} from "./icons.js";
+import {initializeIcons, setIcon} from './icons.js';
 
 const state = createInitialState();
 let slideAdvanceTimer = null;
@@ -395,7 +395,7 @@ function renderSpeakingIndicator() {
     if (!elements.showtimeCountdown) {
         return;
     }
-    elements.showtimeCountdown.textContent = '🗣️';
+    setIcon(elements.showtimeCountdown, 'speaking_head');
     elements.showtimeCountdown.classList.remove('is-danger', 'is-safe');
     elements.showtimeCountdown.classList.add('is-speaking');
 }
