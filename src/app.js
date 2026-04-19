@@ -33,6 +33,7 @@ import {
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
+import {showError, withErrorHandling} from './error.js';
 
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
@@ -89,7 +90,7 @@ function createAudioController() {
             startShowtimeCountdown(null, {seconds});
         },
         onAudioIssue(message) {
-            showError(`⚠️ ${message}`);
+            showError(elements.errorBox, `⚠️ ${message}`);
         },
     });
 }
@@ -116,7 +117,7 @@ function cleanupApplication() {
 
 function bindEvents() {
     elements.pickDirectoryBtn.addEventListener('click', async () => {
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             const deck = await loadDeckFromDirectory();
             await setDeck(deck);
         });
@@ -127,7 +128,7 @@ function bindEvents() {
         if (!file) {
             return;
         }
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             const deck = await loadDeckFromZip(file);
             await setDeck(deck);
             event.target.value = '';
@@ -135,7 +136,7 @@ function bindEvents() {
     });
 
     elements.loadRemoteBtn.addEventListener('click', async () => {
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             const url = elements.remoteUrlInput.value.trim();
             if (!url) {
                 throw new Error('Bitte eine Remote-URL eingeben.');
@@ -162,7 +163,7 @@ function bindEvents() {
             return;
         }
 
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             await playCurrentSlide();
         });
         keepPlaybackButtonFocus();
@@ -594,7 +595,7 @@ async function initializeFromQueryParameters() {
 
     elements.remoteUrlInput.value = remoteUrl;
 
-    await withErrorHandling(async () => {
+    await withErrorHandling(elements.errorBox, async () => {
         const deck = await loadDeckFromRemote(remoteUrl);
         await setDeck(deck);
     });
@@ -810,7 +811,7 @@ async function playCurrentSlide(options = {}) {
     if (!slide) {
         return;
     }
-    await withErrorHandling(async () => {
+    await withErrorHandling(elements.errorBox, async () => {
         hasPresentationStarted = true;
         pausedNonAudioRemainingSeconds = null;
         if (!slide.audio) {
@@ -1059,28 +1060,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     setTranscriptPanelVisibility(keepOpen);
 }
 
-async function withErrorHandling(fn) {
-    try {
-        hideError();
-        await fn();
-    } catch (error) {
-        showError(error instanceof Error ? error.message : String(error));
-    }
-}
-
-function showError(message) {
-    elements.errorBox.textContent = message.replace(/\n/g, '\n');
-    elements.errorBox.classList.remove('hidden');
-}
-
-function hideError() {
-    elements.errorBox.classList.add('hidden');
-    elements.errorBox.textContent = '';
-}
-
 function checkAudioSupport() {
     if (!audioController.isSpeechReallyUsable()) {
-        showError(`
+        showError(elements.errorBox, `
         ⚠️ Sprachwiedergabe wird von diesem Browser nicht unterstützt.
         👉 Bitte nutze ein Gerät mit funktionierender SpeechSynthesis, häufig funzt ein Chrome Browser.
         ℹ️ Falls eine Folie Audio per TTS benötigt, wird stattdessen eine Fallback-Showtime von 10 Sekunden verwendet.
