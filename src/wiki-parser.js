@@ -1,11 +1,12 @@
-import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 
 export function renderSlideContent(slide, assetResolver) {
   const raw = slide.contentText ?? '';
   const format = (slide.format || inferFormat(slide.contentPath)).toLowerCase();
 
   if (format === 'wm') {
-    return renderWikiMarkup(raw, assetResolver);
+    return sanitizeSlideHtml(renderWikiMarkup(raw, assetResolver));
   }
 
   const renderer = new marked.Renderer();
@@ -21,7 +22,14 @@ export function renderSlideContent(slide, assetResolver) {
     return `<img src="${resolved}" alt="${alt}"${titleAttr}>`;
   };
 
-  return marked.parse(raw, { renderer });
+  const rendered = marked.parse(raw, { renderer });
+  return sanitizeSlideHtml(rendered);
+}
+
+function sanitizeSlideHtml(html) {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true }
+  });
 }
 
 export function inferFormat(path = '') {

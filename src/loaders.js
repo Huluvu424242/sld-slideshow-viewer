@@ -22,7 +22,7 @@ export async function loadDeckFromDirectory() {
 }
 
 export async function loadDeckFromZip(file) {
-  const { default: JSZip } = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+  const { default: JSZip } = await import('jszip');
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
   const manifestEntry = zip.file('slides.json');
   if (!manifestEntry) {

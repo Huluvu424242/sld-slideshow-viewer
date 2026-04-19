@@ -36,7 +36,7 @@ Die Loader liefern ein einheitliches Deck-Objekt mit:
 - Asset-Resolver
 - Audiozugriff
 
-### `src/parser.js`
+### `src/wiki-parser.js`
 
 Renderer für:
 

@@ -1,5 +1,5 @@
 import {createInitialState} from './state.js';
-import {renderSlideContent} from './parser.js';
+import {renderSlideContent} from './wiki-parser.js';
 import {AudioController} from './audio.js';
 import {loadDeckFromDirectory, loadDeckFromZip, loadDeckFromRemote} from './loaders.js';
 import {
@@ -33,17 +33,13 @@ import {
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
+import {showError, withErrorHandling} from './error.js';
 
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
-const DOUBLE_TAP_MAX_INTERVAL_MS = 320;
-const DOUBLE_TAP_MAX_DRIFT_PX = 56;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
-const tapState = {
-    lastTapTimestamp: 0,
-    lastTapX: 0,
-    lastTapY: 0,
-};
+const DOUBLE_TAP_INTERVAL_MS = 320;
+const SINGLE_TAP_MAX_MOVEMENT_PX = 12;
 const state = createInitialState();
 const swipeState = createSwipeState();
 const elements=collectLayoutElements();
@@ -53,9 +49,14 @@ let slideAdvanceTimer = null;
 let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
 let nonAudioPlaybackRemainingSeconds = null;
+let pausedNonAudioRemainingSeconds = null;
 let slideChangeCueIndicatorToken = 0;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
+let hasPresentationStarted = false;
+let singleTouchActionTimer = null;
+let singleClickActionTimer = null;
+let lastTouchTapTimestamp = 0;
 
 await initApp();
 
@@ -88,7 +89,7 @@ function createAudioController() {
             startShowtimeCountdown(null, {seconds});
         },
         onAudioIssue(message) {
-            showError(`⚠️ ${message}`);
+            showError(elements.errorBox, `⚠️ ${message}`);
         },
     });
 }
@@ -97,7 +98,6 @@ function registerLifecycleHooks() {
     registerLayoutLifecycleHooks({
         onVisibilityHidden() {
             resetSwipeState(swipeState);
-            resetTapState();
         },
         onBeforeUnload() {
             cleanupApplication();
@@ -109,12 +109,14 @@ function cleanupApplication() {
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
     clearTransitionUnlockTimer();
+    clearSingleTouchActionTimer();
+    clearSingleClickActionTimer();
     nonAudioPlaybackRemainingSeconds = null;
 }
 
 function bindEvents() {
     elements.pickDirectoryBtn.addEventListener('click', async () => {
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             const deck = await loadDeckFromDirectory();
             await setDeck(deck);
         });
@@ -125,7 +127,7 @@ function bindEvents() {
         if (!file) {
             return;
         }
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             const deck = await loadDeckFromZip(file);
             await setDeck(deck);
             event.target.value = '';
@@ -133,7 +135,7 @@ function bindEvents() {
     });
 
     elements.loadRemoteBtn.addEventListener('click', async () => {
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             const url = elements.remoteUrlInput.value.trim();
             if (!url) {
                 throw new Error('Bitte eine Remote-URL eingeben.');
@@ -155,27 +157,25 @@ function bindEvents() {
         }
 
         if (elements.audioStatus.textContent === 'Pausiert') {
-            await audioController.resume();
+            await resumePresentation();
             keepPlaybackButtonFocus();
             return;
         }
 
-        await withErrorHandling(async () => {
+        await withErrorHandling(elements.errorBox, async () => {
             await playCurrentSlide();
         });
         keepPlaybackButtonFocus();
     });
     elements.pauseBtn.addEventListener('click', async () => {
-        clearSlideAdvanceTimer();
-        clearShowtimeCountdown();
-        nonAudioPlaybackRemainingSeconds = null;
-        setPlayButtonActive(false);
-        await audioController.pause();
+        await pausePresentation();
     });
     elements.stopBtn.addEventListener('click', async () => {
         clearSlideAdvanceTimer();
         clearShowtimeCountdown();
         nonAudioPlaybackRemainingSeconds = null;
+        pausedNonAudioRemainingSeconds = null;
+        hasPresentationStarted = false;
         setPlayButtonActive(false);
         await audioController.stop();
     });
@@ -201,8 +201,8 @@ function bindEvents() {
         if (event.target instanceof HTMLInputElement) {
             return;
         }
-        if (event.key === 'ArrowRight') await goToSlide(state.currentIndex + 1);
         if (event.key === 'ArrowLeft') await goToSlide(state.currentIndex - 1);
+        if (event.key === 'ArrowRight') await goToSlide(state.currentIndex + 1);
         if (event.key === 'Home') await goToSlide(0);
         if (event.key === 'End') await goToSlide(state.deck?.slides.length - 1 ?? -1);
         if (event.key === ' ') {
@@ -211,15 +211,34 @@ function bindEvents() {
         }
     });
 
-    elements.slideStage.addEventListener('touchstart', handleTouchStart, {passive: true});
-    elements.slideStage.addEventListener('touchmove', handleTouchMove, {passive: true});
-    elements.slideStage.addEventListener('touchend', (event) => {
+    registerStageInteractionArea(elements.slideStage);
+    registerStageInteractionArea(elements.transcriptPanel);
+    registerStageInteractionArea(elements.errorBox);
+}
+
+function registerStageInteractionArea(element) {
+    if (!element) {
+        return;
+    }
+    element.addEventListener('touchstart', handleTouchStart, {passive: true});
+    element.addEventListener('touchmove', handleTouchMove, {passive: true});
+    element.addEventListener('touchend', (event) => {
         void handleTouchEnd(event);
     }, {passive: true});
-    elements.slideStage.addEventListener('touchcancel', () => {
+    element.addEventListener('touchcancel', () => {
+        clearSingleTouchActionTimer();
         resetSwipeState(swipeState);
-        resetTapState();
     }, {passive: true});
+    element.addEventListener('click', (event) => {
+        void handleStageClick(event);
+    });
+    element.addEventListener('dblclick', handleStageDoubleClick);
+}
+
+function isInteractiveControlTarget(target) {
+    return target instanceof HTMLInputElement
+        || target instanceof HTMLButtonElement
+        || target instanceof HTMLAudioElement;
 }
 
 function keepPlaybackButtonFocus() {
@@ -233,7 +252,7 @@ function handleTouchStart(event) {
         resetSwipeState(swipeState);
         return;
     }
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLButtonElement) {
+    if (isInteractiveControlTarget(event.target)) {
         resetSwipeState(swipeState);
         return;
     }
@@ -256,55 +275,114 @@ async function handleTouchEnd(event) {
     }
 
     const changedTouch = event.changedTouches?.[0];
-    const {isHorizontalSwipe, horizontalDistance} = finishSwipe(swipeState, changedTouch);
+    const {isHorizontalSwipe, isVerticalSwipe, horizontalDistance, verticalDistance} = finishSwipe(swipeState, changedTouch);
 
     resetSwipeState(swipeState);
 
     if (isHorizontalSwipe) {
-        resetTapState();
-        if (horizontalDistance < 0) {
-            await goToSlide(state.currentIndex + 1);
+        if (horizontalDistance > 0) {
+            await goToSlide(state.currentIndex - 1);
             return;
         }
 
-        await goToSlide(state.currentIndex - 1);
-        return;
-    }
-
-    if (!changedTouch) {
-        return;
-    }
-
-    await handleDoubleTapNavigation(changedTouch);
-}
-
-async function handleDoubleTapNavigation(touch) {
-    const now = Date.now();
-    const deltaMs = now - tapState.lastTapTimestamp;
-    const driftX = Math.abs(touch.clientX - tapState.lastTapX);
-    const driftY = Math.abs(touch.clientY - tapState.lastTapY);
-    const isDoubleTap = deltaMs <= DOUBLE_TAP_MAX_INTERVAL_MS
-        && driftX <= DOUBLE_TAP_MAX_DRIFT_PX
-        && driftY <= DOUBLE_TAP_MAX_DRIFT_PX;
-
-    tapState.lastTapTimestamp = now;
-    tapState.lastTapX = touch.clientX;
-    tapState.lastTapY = touch.clientY;
-
-    if (!isDoubleTap) {
-        return;
-    }
-
-    resetTapState();
-    const rect = elements.slideStage.getBoundingClientRect();
-    const isRightSide = touch.clientX >= rect.left + (rect.width / 2);
-
-    if (isRightSide) {
         await goToSlide(state.currentIndex + 1);
         return;
     }
 
-    await goToSlide(state.currentIndex - 1);
+    if (isVerticalSwipe) {
+        if (verticalDistance < 0) {
+            await showTranscriptPanelBySwipe();
+            return;
+        }
+        await hideTranscriptPanelBySwipe();
+        return;
+    }
+
+    const isTap = Math.abs(horizontalDistance) <= SINGLE_TAP_MAX_MOVEMENT_PX
+        && Math.abs(verticalDistance) <= SINGLE_TAP_MAX_MOVEMENT_PX;
+    if (!isTap) {
+        return;
+    }
+
+    const now = Date.now();
+    const isDoubleTap = now - lastTouchTapTimestamp <= DOUBLE_TAP_INTERVAL_MS;
+    lastTouchTapTimestamp = now;
+    if (isDoubleTap) {
+        clearSingleTouchActionTimer();
+        scrollToSlideStageTop();
+        return;
+    }
+
+    scheduleSingleTouchToggle();
+}
+
+function isTouchGeneratedClickEvent(event) {
+    if (!(event instanceof MouseEvent)) {
+        return false;
+    }
+
+    return event.sourceCapabilities?.firesTouchEvents === true;
+}
+
+async function handleStageClick(event) {
+    if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
+        return;
+    }
+    if (isTouchGeneratedClickEvent(event)) {
+        return;
+    }
+    if (isInteractiveControlTarget(event.target)) {
+        return;
+    }
+    if (event.detail > 1) {
+        return;
+    }
+
+    clearSingleClickActionTimer();
+    singleClickActionTimer = window.setTimeout(() => {
+        singleClickActionTimer = null;
+        void togglePresentationByTouch();
+    }, DOUBLE_TAP_INTERVAL_MS);
+}
+
+function handleStageDoubleClick(event) {
+    if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
+        return;
+    }
+    if (isInteractiveControlTarget(event.target)) {
+        return;
+    }
+
+    clearSingleClickActionTimer();
+    scrollToSlideStageTop();
+}
+
+function scheduleSingleTouchToggle() {
+    clearSingleTouchActionTimer();
+    singleTouchActionTimer = window.setTimeout(() => {
+        singleTouchActionTimer = null;
+        void togglePresentationByTouch();
+    }, DOUBLE_TAP_INTERVAL_MS);
+}
+
+function clearSingleTouchActionTimer() {
+    if (!singleTouchActionTimer) {
+        return;
+    }
+    window.clearTimeout(singleTouchActionTimer);
+    singleTouchActionTimer = null;
+}
+
+function clearSingleClickActionTimer() {
+    if (!singleClickActionTimer) {
+        return;
+    }
+    window.clearTimeout(singleClickActionTimer);
+    singleClickActionTimer = null;
+}
+
+function scrollToSlideStageTop() {
+    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
 function clearSlideAdvanceTimer() {
@@ -324,12 +402,6 @@ function clearShowtimeCountdown() {
 function setPlayButtonActive(active) {
     elements.playBtn?.classList.toggle('is-active', active);
     elements.playBtn?.setAttribute('aria-pressed', active ? 'true' : 'false');
-}
-
-function resetTapState() {
-    tapState.lastTapTimestamp = 0;
-    tapState.lastTapX = 0;
-    tapState.lastTapY = 0;
 }
 
 function beginSlideTransitionLock() {
@@ -528,7 +600,7 @@ async function initializeFromQueryParameters() {
 
     elements.remoteUrlInput.value = remoteUrl;
 
-    await withErrorHandling(async () => {
+    await withErrorHandling(elements.errorBox, async () => {
         const deck = await loadDeckFromRemote(remoteUrl);
         await setDeck(deck);
     });
@@ -541,6 +613,8 @@ async function setDeck(deck) {
     state.sourceKind = deck.sourceKind;
     state.currentIndex = 0;
     await audioController.stop();
+    hasPresentationStarted = false;
+    pausedNonAudioRemainingSeconds = null;
     hideTranscriptPanel();
     refreshUi();
     renderSlideList();
@@ -562,7 +636,7 @@ async function goToSlide(index, options = {}) {
     try {
         clearSlideAdvanceTimer();
         clearShowtimeCountdown();
-        resetTapState();
+        pausedNonAudioRemainingSeconds = null;
         await audioController.stop();
         if (options.autoplay) {
             const bellDurationSeconds = playSlideChangeCueWithIndicator();
@@ -742,7 +816,9 @@ async function playCurrentSlide(options = {}) {
     if (!slide) {
         return;
     }
-    await withErrorHandling(async () => {
+    await withErrorHandling(elements.errorBox, async () => {
+        hasPresentationStarted = true;
+        pausedNonAudioRemainingSeconds = null;
         if (!slide.audio) {
             setPlayButtonActive(true);
             startShowtimeCountdown(slide);
@@ -760,6 +836,102 @@ async function playCurrentSlide(options = {}) {
         renderSpeakingIndicator();
         await audioController.play(slide, state.deck.assetLoader);
     });
+}
+
+async function togglePresentationByTouch() {
+    if (!state.deck || state.currentIndex < 0 || !hasPresentationStarted) {
+        await playCurrentSlide();
+        return;
+    }
+
+    if (!isPresentationRunning()) {
+        if (elements.audioStatus.textContent === 'Pausiert') {
+            await resumePresentation();
+            return;
+        }
+        await playCurrentSlide();
+        return;
+    }
+
+    await pausePresentation();
+}
+
+function isPresentationRunning() {
+    if (nonAudioPlaybackRemainingSeconds !== null) {
+        return true;
+    }
+    return elements.audioStatus.textContent.startsWith('Spielt');
+}
+
+async function pausePresentation() {
+    if (!hasPresentationStarted) {
+        return;
+    }
+
+    if (!isPresentationRunning()) {
+        return;
+    }
+
+    if (nonAudioPlaybackRemainingSeconds !== null) {
+        pausedNonAudioRemainingSeconds = nonAudioPlaybackRemainingSeconds;
+    }
+    clearSlideAdvanceTimer();
+    clearShowtimeCountdown();
+    nonAudioPlaybackRemainingSeconds = null;
+    setPlayButtonActive(false);
+
+    if (elements.audioStatus.textContent === 'Pausiert') {
+        return;
+    }
+
+    if (pausedNonAudioRemainingSeconds !== null) {
+        elements.audioStatus.textContent = 'Pausiert';
+        return;
+    }
+
+    await audioController.pause();
+}
+
+async function resumePresentation() {
+    if (!hasPresentationStarted) {
+        return;
+    }
+
+    if (pausedNonAudioRemainingSeconds !== null) {
+        const remainingSeconds = pausedNonAudioRemainingSeconds;
+        pausedNonAudioRemainingSeconds = null;
+        setPlayButtonActive(true);
+        startShowtimeCountdown(null, {seconds: remainingSeconds});
+        if (state.autoAdvance) {
+            clearSlideAdvanceTimer();
+            slideAdvanceTimer = window.setTimeout(async () => {
+                slideAdvanceTimer = null;
+                if (!state.autoAdvance || !state.deck) {
+                    return;
+                }
+                await handleSlidePlaybackCompleted();
+            }, remainingSeconds * 1000);
+        }
+        const currentSlide = state.deck?.slides[state.currentIndex];
+        updateSlideAudioStatus(currentSlide);
+        return;
+    }
+
+    await audioController.resume();
+}
+
+async function showTranscriptPanelBySwipe() {
+    if (isTranscriptPanelOpen()) {
+        return;
+    }
+    await renderTranscriptContent({keepOpen: true});
+}
+
+async function hideTranscriptPanelBySwipe() {
+    if (!isTranscriptPanelOpen()) {
+        return;
+    }
+    setTranscriptPanelVisibility(false);
 }
 
 function renderSlideList() {
@@ -837,7 +1009,7 @@ function setTranscriptPanelVisibility(isVisible) {
 function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
-    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    scrollToSlideStageTop();
     // elements.playerToolbar?.scrollIntoView({behavior: 'auto', block: 'start'});
 }
 
@@ -912,28 +1084,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     setTranscriptPanelVisibility(keepOpen);
 }
 
-async function withErrorHandling(fn) {
-    try {
-        hideError();
-        await fn();
-    } catch (error) {
-        showError(error instanceof Error ? error.message : String(error));
-    }
-}
-
-function showError(message) {
-    elements.errorBox.textContent = message.replace(/\n/g, '\n');
-    elements.errorBox.classList.remove('hidden');
-}
-
-function hideError() {
-    elements.errorBox.classList.add('hidden');
-    elements.errorBox.textContent = '';
-}
-
 function checkAudioSupport() {
     if (!audioController.isSpeechReallyUsable()) {
-        showError(`
+        showError(elements.errorBox, `
         ⚠️ Sprachwiedergabe wird von diesem Browser nicht unterstützt.
         👉 Bitte nutze ein Gerät mit funktionierender SpeechSynthesis, häufig funzt ein Chrome Browser.
         ℹ️ Falls eine Folie Audio per TTS benötigt, wird stattdessen eine Fallback-Showtime von 10 Sekunden verwendet.

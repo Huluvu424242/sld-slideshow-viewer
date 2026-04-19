@@ -1,139 +1,287 @@
-# slideshow-viewer
+# 📽️ SLD Slideshow Viewer
 
-Statisches Browser-Grundgerüst für dein Slideshow-Projekt.
+Ein **rein browserbasierter Viewer für Markdown-basierte Foliensätze mit optionalem Audio**.
 
-## Ziel
+Das Projekt ermöglicht es, Präsentationen ohne spezielle Software direkt im Browser abzuspielen – inklusive Audio, TTS-Fallback und automatischem Folienwechsel.
 
-Die Anwendung lädt eine Slideshow aus:
+---
 
-- lokalem Verzeichnis
-- lokalem SLD- oder ZIP-Archiv
-- Remote-URL zu `slides.json`
-- Remote-URL zu einem SLD- oder ZIP-Archiv
+## 🚀 Features
 
-Unterstützte Folienformate:
+* 📂 **Lokale Verzeichnisse laden** (File System Access API)
+* 📦 **SLD / ZIP Dateien öffnen**
+* 🌍 **Remote Slideshows laden** (über URL)
+* 📝 **Markdown-Rendering** (inkl. Bilder)
+* 🗣️ **Audio pro Folie**
 
-- Markdown (`.md`)
-- einfaches Wikimedia/Wiki-Markup (`.wm`)
+    * echte Audio-Dateien
+    * Text / SSML (TTS im Browser)
+* ⏱️ **Automatischer Folienwechsel (showtime)**
+* 🔁 **Autoplay & Navigation**
+* 📱 **Swipe- und Touchsteuerung**
+* 🔔 **Akustische Übergänge (Glocken / Gong)**
+* 👁️ **Transkriptanzeige (Audio/Text)**
+* ⚠️ **Fallbacks bei fehlendem Audio oder Browser-Support**
 
-Unterstützte Audioarten:
+---
 
-- `txt` → Browser Text-to-Speech
-- `ssml` → Browser Text-to-Speech mit einfachem SSML-Strip/Abbau auf sprechbaren Text
-- `mp3` → Wiedergabe im Browser über `HTMLAudioElement`
+## 🧱 Architektur
 
-## Start lokal
+Das Projekt ist bewusst minimal gehalten:
 
-Da Browser für Module, Fetch und lokale Dateien Einschränkungen haben, sollte die App über einen kleinen HTTP-Server laufen.
+* **Keine Build-Tools**
+* **Kein Node.js erforderlich**
+* **Keine Backend-Komponenten**
 
-### Variante A: VS Code / IntelliJ / ähnlicher Webserver
+Technologie:
 
-Projektordner öffnen und als statische Seite bereitstellen.
+* HTML + CSS + Vanilla JavaScript
+* ESM-Imports direkt über CDN
+* Browser APIs:
 
-### Variante B: Python
+    * File System Access API
+    * SpeechSynthesis (TTS)
+    * AudioContext
+
+---
+
+## 📂 Unterstützte Quellen
+
+### 1. Lokales Verzeichnis
+
+* Auswahl über „Verzeichnis öffnen“
+* benötigt Chromium-basierte Browser
+
+### 2. `.sld` / `.zip`
+
+* Standardformat für portable Slideshows
+* enthält:
+
+    * `slides.json`
+    * Markdown-Dateien
+    * Audio-Dateien
+    * Assets (z. B. Bilder)
+
+### 3. Remote URL
+
+Beispiel:
+
+```
+https://example.org/my-slideshow/
+https://example.org/my-slideshow/slides.json
+https://example.org/my-slideshow.sld
+```
+
+⚠️ Einschränkung:
+Remote-Zugriffe funktionieren nur, wenn der Server **CORS erlaubt**.
+
+---
+
+## 🧾 Slideshow-Format
+
+### Manifest (`slides.json`)
+
+```json
+{
+  "title": "Beispiel",
+  "slides": [
+    {
+      "content": "slide1.md",
+      "audio": "slide1.mp3",
+      "showtime": 10
+    }
+  ]
+}
+```
+
+### Eigenschaften
+
+| Feld       | Beschreibung                            |
+| ---------- | --------------------------------------- |
+| `content`  | Markdown- oder WM-Datei                 |
+| `audio`    | optional (Audio oder Text/SSML)         |
+| `showtime` | Dauer in Sekunden (Fallback / Autoplay) |
+
+➡️ Eine Folie benötigt **entweder Audio oder showtime**
+
+---
+
+## 📝 Unterstützte Formate
+
+### Markdown (`.md`)
+
+* wird über `marked` gerendert
+
+### Wiki-Markup (`.wm`)
+
+* einfache eigene Syntax
+
+### Audio
+
+* `.mp3`, `.wav`, etc.
+* `.txt` oder `.ssml` → wird per TTS gesprochen
+
+---
+
+## 🔊 Audio-Verhalten
+
+| Situation        | Verhalten               |
+| ---------------- | ----------------------- |
+| Audio vorhanden  | wird abgespielt         |
+| Text / SSML      | wird per TTS gesprochen |
+| kein Audio       | showtime wird genutzt   |
+| Browser ohne TTS | Fallback auf showtime   |
+
+---
+
+## ⚠️ Browser-Kompatibilität
+
+Empfohlen:
+
+* ✅ Google Chrome
+* ✅ Chromium-basierte Browser
+
+Eingeschränkt:
+
+* ⚠️ Mozilla Firefox (TTS / File API limitiert)
+
+---
+
+## 📁 Projektstruktur
+
+```
+/
+├── index.html
+├── src/
+│   ├── app.js
+│   ├── loaders.js
+│   ├── parser.js
+│   ├── audio.js
+│   └── ...
+├── docs/
+│   ├── createslideshow.md
+│   ├── architecture.md
+│   └── ...
+├── THIRD_PARTY_NOTICES.md
+└── .github/workflows/
+```
+
+---
+
+## ⚖️ Drittanbieter-Abhängigkeiten
+
+Aktuell werden folgende Bibliotheken verwendet:
+
+* `marked` (Markdown Parser)
+* `DOMPurify` (Sanitizing von gerendertem HTML)
+* `JSZip` (ZIP/SLD Verarbeitung)
+
+👉 Details siehe:
+`THIRD_PARTY_NOTICES.md`
+
+---
+
+## 🛡️ Dependency & License Governance
+
+Dieses Projekt verfolgt einen bewussten Umgang mit Abhängigkeiten.
+
+### Regeln
+
+* Jede Bibliothek muss dokumentiert sein
+* Lizenz muss geprüft werden
+* CDN-Imports zählen als echte Abhängigkeiten
+
+👉 Details:
+
+* `docs/dependency-policy.md`
+* `docs/license-review-checklist.md`
+
+---
+
+## 🤖 Automatische Prüfung (GitHub Actions)
+
+Eine GitHub Action prüft:
+
+* erkannte Abhängigkeiten (inkl. CDN)
+* Abgleich mit `THIRD_PARTY_NOTICES.md`
+
+Datei:
+
+```
+.github/workflows/dependency-license-check.yml
+```
+
+Die Action schlägt fehl, wenn:
+
+* eine Bibliothek verwendet wird
+* aber nicht dokumentiert ist
+
+---
+
+## 🧪 Entwicklung
+
+Projekt lokal starten:
 
 ```bash
-python -m http.server 8080
+# einfach im Browser öffnen
+index.html
 ```
 
-Dann im Browser öffnen:
+oder über einfachen Server:
 
-```text
-http://localhost:8080
+```bash
+python -m http.server
 ```
 
-## Deploy auf GitHub Pages
+---
 
-Ein einfacher GitHub-Actions-Workflow ist enthalten.
+## 📌 Roadmap (Auszug)
 
-## URL-Parameter
+* bessere Offline-Unterstützung
+* stabilere TTS-Integration
+* optionales Pre-Rendering von Audio
+* Erweiterung des SLD-Formats
 
-Wird die Anwendung mit `?url=...` aufgerufen, wird diese URL automatisch zum Laden der Slideshow verwendet.
+---
 
-Beispiele:
+## 📜 Lizenz
 
-```text
-https://huluvu424242.github.io/sld-slideshow-viewer/?url=https://huluvu424242.github.io/foile-pile/explainations/mesh/meshnetze/slides.json
+Projektlizenz siehe:
+
+```
+LICENSE
 ```
 
-```text
-https://<deine-pages-url>/index.html?url=https://example.org/slides/slides.json
-```
+---
 
-```text
-https://<deine-pages-url>/index.html?url=https://example.org/bundles/demo.zip
-https://<deine-pages-url>/index.html?url=https://example.org/bundles/demo.sld
-```
+## 💡 Idee hinter dem Projekt
 
-Der Wert darf also entweder direkt auf eine `slides.json` oder auf ein SLD- oder ZIP-Archiv zeigen.
+Ziel ist es, einen **leichtgewichtigen, offenen Präsentationsstandard** zu schaffen:
 
+* Markdown statt PowerPoint
+* Audio statt Live-Vortrag
+* Browser statt spezieller Software
+* ZIP/SLD statt proprietärer Formate
 
-## Dokumentation
+---
 
-- `docs/architecture.md`
-- `docs/manifest.md`
-- `docs/roadmap.md`
+## 🔗 Links
 
-## Beispiel
+* GitHub:
+  https://github.com/Huluvu424242/sld-slideshow-viewer
 
-Unter `example/` liegt eine kleine Beispieldatenbasis.
+* Beispiel-Slides:
+  https://huluvu424242.github.io/foile-pile/
 
-Für Remote-Tests kann die Datei `example/slides.json` direkt referenziert werden, sobald das Repo auf GitHub Pages liegt.
+---
 
+## 🧠 Hinweis
 
-## UI-Hinweis
+Dieses Projekt ist bewusst **einfach gehalten**.
+Es soll zeigen, wie weit man mit:
 
-Die Hauptnavigation verwendet jetzt freie Inline-SVG-Icons statt Emojis. Dadurch sind Play und Nächste Folie klarer unterscheidbar und die Darstellung bleibt auf GitHub Pages ohne zusätzliche Bibliothek stabil.
+* Standard-Webtechnologien
+* offenen Formaten
+* minimaler Architektur
 
-
-## Verhalten bei Audiofehlern
-
-Wenn eine Audiodatei nicht geladen werden kann, etwa wegen einer fehlenden Datei oder eines Netzwerkfehlers, spricht der Viewer automatisch den Satz `Die Audio Datei konnte nicht geladen werden.`
-
-Der automatische Präsentationsmodus läuft danach weiter und springt wie gewohnt zur nächsten Folie.
-
-
-## CORS beim Remote-Laden
-
-Beim Laden einer Slideshow über eine Remote-URL gelten die normalen Browser-CORS-Regeln.
-
-Das bedeutet praktisch:
-
-- Remote-Laden funktioniert zuverlässig, wenn die Dateien vom gleichen Host bereitgestellt werden.
-- Es funktioniert auch, wenn der entfernte Server passende CORS-Header setzt.
-- Ohne passende Freigabe blockiert der Browser den Zugriff, auch wenn die URL technisch erreichbar ist.
-
-Darum sollte die Oberfläche einen Hinweis anzeigen, dass Remote-Laden im Browser oft nur vom gleichen Host oder aus lokal freigegebenen Quellen möglich ist.
-
-
-## Quellen im UI
-
-Die Anwendung zeigt im Kopfbereich nicht nur einen kurzen Beschreibungstext, sondern zusätzlich direkte Links auf die bisherigen Projektquellen sowie auf die lokale Dokumentation:
-
-- honey-slideshow
-- foile-pile
-- slidecast-angularjs.example
-- eclipse-slideshow
-- liona-slideshow
-- README
-- docs/architecture.md
-- docs/manifest.md
-- docs/roadmap.md
-
-Dadurch ist der Viewer nicht nur ein Abspielgerüst, sondern zugleich ein nachvollziehbarer Einstiegspunkt in das Gesamtprojekt.
-
-
-## Weitere Dokumentation
-
-Zusätzlich zur Architektur-, Manifest- und Roadmap-Dokumentation enthält das Projekt nun auch eine Autorenanleitung:
-
-- `docs/createslideshow.md`
-
-Darin wird beschrieben, wie eine Slideshow aufgebaut ist, welche Dateiformate zulässig sind und wie typische Beispiele aussehen.
-
-
-## Dateiendung `.sld`
-
-Für Slideshows wird bevorzugt die Dateiendung `.sld` verwendet. Technisch kann eine `.sld`-Datei wie ein ZIP-Container aufgebaut sein.
-
-Der Viewer behandelt deshalb `.sld` und `.zip` beim lokalen Öffnen gleich. Standardmäßig wird jedoch `.sld` als das bevorzugte Slideshow-Dokumentformat dargestellt.
+kommen kann.
