@@ -183,6 +183,10 @@ function bindEvents() {
         state.autoAdvance = elements.autoplayNextCheckbox.checked;
         syncAutoSlideChangeForCurrentSlide();
     });
+    elements.helpToggleBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        toggleHelpPanel();
+    });
     elements.transcriptToggleBtn.addEventListener('click', async (event) => {
         event.preventDefault();
         const previousAutoAdvance = state.autoAdvance;
@@ -1004,6 +1008,19 @@ async function toggleTranscriptPanel() {
 function setTranscriptPanelVisibility(isVisible) {
     elements.transcriptPanel.classList.toggle('hidden', !isVisible);
     updateTranscriptToggleButton(elements.transcriptToggleBtn, isVisible);
+}
+
+function isHelpPanelOpen() {
+    return !elements.helpPanel.classList.contains('hidden');
+}
+
+function toggleHelpPanel() {
+    const shouldOpen = !isHelpPanelOpen();
+    elements.helpPanel.classList.toggle('hidden', !shouldOpen);
+    elements.helpToggleBtn.setAttribute('aria-expanded', String(shouldOpen));
+    const tooltipText = shouldOpen ? 'Steuerungshilfe ausblenden' : 'Steuerungshilfe anzeigen';
+    elements.helpToggleBtn.title = tooltipText;
+    elements.helpToggleBtn.setAttribute('aria-label', tooltipText);
 }
 
 function hideTranscriptPanel() {

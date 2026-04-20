@@ -135,6 +135,19 @@ export const ICONS = Object.freeze({
     </svg>
   `,
     /*
+     * Icon: help
+     * Autor: Huluvu424242
+     * Lizenz: MIT
+     * Quelle: selbst erstellt
+     */
+    help: `
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.4 9.2a2.6 2.6 0 0 1 5.2.1c0 1.2-.7 1.8-1.8 2.5-.8.5-1.3 1-1.3 2" />
+        <circle cx="12" cy="16.9" r="0.7" />
+    </svg>
+  `,
+    /*
      * Icon: speaking_head
      * Autor: Twitter
      * Lizenz: MIT
@@ -304,4 +317,3 @@ export function toggleIconState(element) {
     setIconState(element, iconStateGroup, nextState);
     return nextState;
 }
-

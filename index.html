@@ -158,10 +158,32 @@
             <label class="checkbox-inline">
               <input id="autoplay-next-checkbox" type="checkbox" checked>
               <span>Nächste Folie automatisch</span>
+              <button
+                id="help-toggle-btn"
+                class="icon-btn icon-btn--help"
+                type="button"
+                title="Steuerungshilfe anzeigen"
+                aria-label="Steuerungshilfe anzeigen"
+                aria-expanded="false"
+                data-icon="help"
+              >
+              </button>
             </label>
           </div>
         </header>
         <div id="error-box" class="error-box error-box--stage hidden" role="alert"></div>
+        <section id="help-panel" class="help-panel hidden" aria-live="polite">
+          <h3>Steuerungshilfe</h3>
+          <p>Diese Befehle stehen für Folienwechsel und Wiedergabe zur Verfügung:</p>
+          <ul>
+            <li><strong>Buttons:</strong> Erste, Vorherige, Nächste, Letzte Folie; Abspielen, Pause, Stop.</li>
+            <li><strong>Tastatur:</strong> ← / → für vorherige bzw. nächste Folie, Home für erste, Ende für letzte Folie, Leertaste startet die aktuelle Folie.</li>
+            <li><strong>Klick im Folienbereich:</strong> Einfachklick startet/pausiert die Präsentation.</li>
+            <li><strong>Doppelklick im Folienbereich:</strong> Scrollt zurück an den Anfang der Folie.</li>
+            <li><strong>Touch-Gesten:</strong> Wischen links/rechts wechselt Folien, Wischen nach oben/unten zeigt/versteckt den Audiotext, Tippen startet/pausiert.</li>
+            <li><strong>Gehe zu:</strong> Foliennummer eingeben und mit <em>Los</em> direkt springen.</li>
+          </ul>
+        </section>
 
         <section id="transcript-panel" class="transcript-panel hidden" aria-live="polite">
           <h3>Audioinhalt der aktuellen Folie</h3>
