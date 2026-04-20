@@ -35,6 +35,12 @@ import {
 } from './layout.js';
 import {showError, withErrorHandling} from './error.js';
 import {toggleHelpPanel} from './hilfe.js';
+import {
+    bindAutoAdvanceToggle,
+    bindPlayerButtonEvents,
+    scheduleAutoAdvanceForShowtime as scheduleAutoAdvanceForShowtimeInPlayer,
+    syncAutoSlideChangeForCurrentSlide as syncAutoSlideChangeForCurrentSlideInPlayer,
+} from './player.js';
 
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
@@ -146,43 +152,26 @@ function bindEvents() {
         });
     });
 
-    elements.firstBtn.addEventListener('click', () => goToSlide(0));
-    elements.prevBtn.addEventListener('click', () => goToSlide(state.currentIndex - 1));
-    elements.nextBtn.addEventListener('click', () => goToSlide(state.currentIndex + 1));
-    elements.lastBtn.addEventListener('click', () => goToSlide(state.deck?.slides.length - 1 ?? -1));
-    elements.gotoBtn.addEventListener('click', () => goToSlide(Number(elements.gotoInput.value) - 1));
-    elements.playBtn.addEventListener('click', async (event) => {
-        event.preventDefault();
-        if (!state.deck || state.currentIndex < 0) {
-            return;
-        }
-
-        if (elements.audioStatus.textContent === 'Pausiert') {
-            await resumePresentation();
-            keepPlaybackButtonFocus();
-            return;
-        }
-
-        await withErrorHandling(elements.errorBox, async () => {
-            await playCurrentSlide();
-        });
-        keepPlaybackButtonFocus();
+    bindPlayerButtonEvents({
+        elements,
+        getCurrentIndex: () => state.currentIndex,
+        getDeck: () => state.deck,
+        getAudioStatus: () => elements.audioStatus.textContent,
+        goToSlide,
+        resumePresentation,
+        playCurrentSlide,
+        pausePresentation,
+        stopPresentation,
+        keepPlaybackButtonFocus,
+        withErrorHandling,
+        errorBox: elements.errorBox,
     });
-    elements.pauseBtn.addEventListener('click', async () => {
-        await pausePresentation();
-    });
-    elements.stopBtn.addEventListener('click', async () => {
-        clearSlideAdvanceTimer();
-        clearShowtimeCountdown();
-        nonAudioPlaybackRemainingSeconds = null;
-        pausedNonAudioRemainingSeconds = null;
-        hasPresentationStarted = false;
-        setPlayButtonActive(false);
-        await audioController.stop();
-    });
-    elements.autoplayNextCheckbox.addEventListener('change', () => {
-        state.autoAdvance = elements.autoplayNextCheckbox.checked;
-        syncAutoSlideChangeForCurrentSlide();
+    bindAutoAdvanceToggle({
+        elements,
+        setAutoAdvanceEnabled(value) {
+            state.autoAdvance = value;
+        },
+        syncAutoSlideChangeForCurrentSlide,
     });
     elements.helpToggleBtn.addEventListener('click', (event) => {
         event.preventDefault();
@@ -522,46 +511,34 @@ function updateSlideAudioStatus(slide) {
     elements.audioStatus.textContent = `Kein Audio – Anzeige ${showtime} s`;
 }
 
-function scheduleAutoAdvanceForShowtime(slide) {
-    clearSlideAdvanceTimer();
-
-    const showtime = getSlideShowtimeSeconds(slide);
-    if (!state.autoAdvance) {
-        updateSlideAudioStatus(slide);
-        return false;
-    }
-
-    updateSlideAudioStatus(slide);
-    slideAdvanceTimer = window.setTimeout(async () => {
-        slideAdvanceTimer = null;
-        if (!state.autoAdvance || !state.deck) {
-            return;
-        }
-        await handleSlidePlaybackCompleted();
-    }, showtime * 1000);
-
-    return true;
-}
-
 function syncAutoSlideChangeForCurrentSlide() {
     const slide = state.deck?.slides[state.currentIndex];
-    if (!slide || slide.audio) {
-        nonAudioPlaybackRemainingSeconds = null;
-        clearSlideAdvanceTimer();
-        clearShowtimeCountdown();
-        setPlayButtonActive(false);
-        return;
-    }
+    syncAutoSlideChangeForCurrentSlideInPlayer({
+        slide,
+        autoAdvance: state.autoAdvance,
+        setNonAudioPlaybackRemainingSeconds(value) {
+            nonAudioPlaybackRemainingSeconds = value;
+        },
+        clearSlideAdvanceTimer,
+        clearShowtimeCountdown,
+        setPlayButtonActive,
+        startShowtimeCountdown,
+        scheduleAutoAdvanceForShowtime,
+    });
+}
 
-    if (!state.autoAdvance) {
-        clearSlideAdvanceTimer();
-        setPlayButtonActive(false);
-        return;
-    }
-
-    setPlayButtonActive(true);
-    startShowtimeCountdown(slide);
-    scheduleAutoAdvanceForShowtime(slide);
+function scheduleAutoAdvanceForShowtime(slide) {
+    return scheduleAutoAdvanceForShowtimeInPlayer({
+        slide,
+        autoAdvance: () => state.autoAdvance && Boolean(state.deck),
+        clearSlideAdvanceTimer,
+        updateSlideAudioStatus,
+        getSlideShowtimeSeconds,
+        setSlideAdvanceTimer(timerId) {
+            slideAdvanceTimer = timerId;
+        },
+        onPlaybackCompleted: handleSlidePlaybackCompleted,
+    });
 }
 
 async function handleSlidePlaybackCompleted() {
@@ -923,6 +900,16 @@ async function resumePresentation() {
     }
 
     await audioController.resume();
+}
+
+async function stopPresentation() {
+    clearSlideAdvanceTimer();
+    clearShowtimeCountdown();
+    nonAudioPlaybackRemainingSeconds = null;
+    pausedNonAudioRemainingSeconds = null;
+    hasPresentationStarted = false;
+    setPlayButtonActive(false);
+    await audioController.stop();
 }
 
 async function showTranscriptPanelBySwipe() {
