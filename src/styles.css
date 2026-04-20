@@ -100,6 +100,10 @@ code {
     width: min(540px, 100%);
 }
 
+#transcript-audio-player.hidden {
+    display: none;
+}
+
 #transcript-audio-player.is-disabled {
     opacity: 0.45;
     filter: grayscale(1);
