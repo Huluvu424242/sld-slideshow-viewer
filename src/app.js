@@ -34,6 +34,7 @@ import {
     updateTranscriptToggleButton,
 } from './layout.js';
 import {showError, withErrorHandling} from './error.js';
+import {toggleHelpPanel} from './hilfe.js';
 
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
@@ -185,7 +186,7 @@ function bindEvents() {
     });
     elements.helpToggleBtn.addEventListener('click', (event) => {
         event.preventDefault();
-        toggleHelpPanel();
+        toggleHelpPanel(elements.helpPanel, elements.helpToggleBtn);
     });
     elements.transcriptToggleBtn.addEventListener('click', async (event) => {
         event.preventDefault();
@@ -1009,20 +1010,6 @@ function setTranscriptPanelVisibility(isVisible) {
     elements.transcriptPanel.classList.toggle('hidden', !isVisible);
     updateTranscriptToggleButton(elements.transcriptToggleBtn, isVisible);
 }
-
-function isHelpPanelOpen() {
-    return !elements.helpPanel.classList.contains('hidden');
-}
-
-function toggleHelpPanel() {
-    const shouldOpen = !isHelpPanelOpen();
-    elements.helpPanel.classList.toggle('hidden', !shouldOpen);
-    elements.helpToggleBtn.setAttribute('aria-expanded', String(shouldOpen));
-    const tooltipText = shouldOpen ? 'Steuerungshilfe ausblenden' : 'Steuerungshilfe anzeigen';
-    elements.helpToggleBtn.title = tooltipText;
-    elements.helpToggleBtn.setAttribute('aria-label', tooltipText);
-}
-
 function hideTranscriptPanel() {
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
