@@ -37,8 +37,12 @@ export function isTextAudioType(audioType) {
 }
 
 export function isPlayableAudioType(audioType, sourcePath = '') {
-    if (audioType && !isTextAudioType(audioType)) {
+    const normalizedType = String(audioType || '').toLowerCase();
+    if (PLAYABLE_AUDIO_TYPES.has(normalizedType)) {
         return true;
+    }
+    if (normalizedType && !isTextAudioType(normalizedType)) {
+        return false;
     }
 
     const extension = String(sourcePath)
@@ -48,8 +52,10 @@ export function isPlayableAudioType(audioType, sourcePath = '') {
         .pop()
         ?.toLowerCase();
 
-    return ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'webm', 'mp4'].includes(extension || '');
+    return PLAYABLE_AUDIO_TYPES.has(extension || '');
 }
+
+const PLAYABLE_AUDIO_TYPES = new Set(['mp3', 'm4a', 'aac', 'wav', 'ogg', 'oga', 'opus', 'flac', 'webm', 'mp4']);
 
 export function preserveStructuredText(text) {
     return String(text)
