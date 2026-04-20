@@ -1089,20 +1089,6 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     }
 
     const audioType = inferAudioType(slide.audio);
-    elements.transcriptAudioPlayer.classList.remove('hidden');
-
-    try {
-        const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
-        elements.transcriptAudioPlayer.src = resolvedSource;
-        const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
-        elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
-        if (!playableInBrowser) {
-            elements.transcriptAudioPlayer.pause();
-        }
-    } catch (error) {
-        elements.transcriptAudioPlayer.classList.add('is-disabled');
-        elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
-    }
 
     if (isTextAudioType(audioType)) {
         try {
@@ -1122,6 +1108,19 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     }
 
     if (isPlayableAudioType(audioType, slide.audio.src)) {
+        elements.transcriptAudioPlayer.classList.remove('hidden');
+        try {
+            const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
+            elements.transcriptAudioPlayer.src = resolvedSource;
+            const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
+            elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
+            if (!playableInBrowser) {
+                elements.transcriptAudioPlayer.pause();
+            }
+        } catch (error) {
+            elements.transcriptAudioPlayer.classList.add('is-disabled');
+            elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
+        }
         if (!elements.transcriptHint.textContent) {
             elements.transcriptHint.textContent = 'Für diese Folie liegt eine Audio-Datei vor. Du kannst im Player navigieren.';
         }
