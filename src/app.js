@@ -64,6 +64,7 @@ let hasPresentationStarted = false;
 let singleTouchActionTimer = null;
 let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
+let transcriptRenderToken = 0;
 
 await initApp();
 
@@ -972,6 +973,7 @@ async function hideTranscriptPanelBySwipe() {
     if (!isTranscriptPanelOpen()) {
         return;
     }
+    transcriptRenderToken += 1;
     setTranscriptPanelVisibility(false);
 }
 
@@ -1058,6 +1060,7 @@ function setTranscriptPanelVisibility(isVisible) {
     updateTranscriptToggleButton(elements.transcriptToggleBtn, isVisible);
 }
 function hideTranscriptPanel() {
+    transcriptRenderToken += 1;
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
     scrollToSlideStageTop();
@@ -1079,6 +1082,7 @@ function isTranscriptPanelOpen() {
 }
 
 async function renderTranscriptContent({keepOpen = false} = {}) {
+    const renderToken = ++transcriptRenderToken;
     const slide = state.deck?.slides[state.currentIndex];
     clearTranscriptPanelContent();
 
@@ -1093,6 +1097,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     if (isTextAudioType(audioType)) {
         try {
             const textContent = await state.deck.assetLoader.loadText(slide.audio.src);
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
             elements.transcriptText.textContent = audioType === 'ssml'
                 ? ssmlToDisplayText(textContent)
                 : preserveStructuredText(textContent);
@@ -1101,6 +1108,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
                 elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
             }
         } catch (error) {
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
             elements.transcriptHint.textContent = 'Der Text zur Audio-Datei konnte nicht geladen werden.';
         }
         setTranscriptPanelVisibility(keepOpen);
@@ -1111,6 +1121,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
         elements.transcriptAudioPlayer.classList.remove('hidden');
         try {
             const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
             elements.transcriptAudioPlayer.src = resolvedSource;
             const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
             elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
@@ -1118,6 +1131,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
                 elements.transcriptAudioPlayer.pause();
             }
         } catch (error) {
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
             elements.transcriptAudioPlayer.classList.add('is-disabled');
             elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
         }
