@@ -385,6 +385,39 @@ input[type="url"] {
     padding-left: 6px;
 }
 
+.icon-btn--help {
+    width: 34px;
+    height: 34px;
+}
+
+.icon-btn--help .icon {
+    width: 18px;
+    height: 18px;
+}
+
+.help-panel {
+    margin: 12px 18px 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(35, 42, 52, 0.55);
+}
+
+.help-panel h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.help-panel p {
+    margin: 10px 0 0;
+}
+
+.help-panel ul {
+    margin: 8px 0 0;
+    padding-left: 22px;
+    line-height: 1.45;
+}
+
 @media (max-width: 1100px) {
     .app-shell {
         grid-template-columns: 1fr;

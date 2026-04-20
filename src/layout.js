@@ -17,6 +17,8 @@ const ELEMENT_SELECTORS = {
     transcriptText: '#transcript-text',
     transcriptAudioPlayer: '#transcript-audio-player',
     autoplayNextCheckbox: '#autoplay-next-checkbox',
+    helpToggleBtn: '#help-toggle-btn',
+    helpPanel: '#help-panel',
     remoteUrlInput: '#remote-url-input',
     zipInput: '#zip-input',
     pickDirectoryBtn: '#pick-directory-btn',
