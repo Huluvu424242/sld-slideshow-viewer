@@ -333,6 +333,7 @@ input[type="url"] {
 
 .slide-card {
     width: min(1200px, 100%);
+    margin-inline: auto;
     min-height: calc(100vh - 120px);
     background: linear-gradient(180deg, #f6f8fb, #e9eef6);
     color: #111827;
@@ -369,6 +370,7 @@ input[type="url"] {
 
 .placeholder {
     width: min(920px, 100%);
+    margin-inline: auto;
     min-height: calc(100vh - 120px);
     border: 2px dashed var(--border);
     border-radius: 28px;

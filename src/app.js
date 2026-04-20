@@ -208,6 +208,10 @@ function bindEvents() {
     registerStageInteractionArea(elements.slideStage);
     registerStageInteractionArea(elements.transcriptPanel);
     registerStageInteractionArea(elements.errorBox);
+
+    window.addEventListener('resize', () => {
+        centerSlideStageHorizontally();
+    });
 }
 
 function registerStageInteractionArea(element) {
@@ -284,11 +288,7 @@ async function handleTouchEnd(event) {
     }
 
     if (isVerticalSwipe) {
-        if (verticalDistance < 0) {
-            await showTranscriptPanelBySwipe();
-            return;
-        }
-        await hideTranscriptPanelBySwipe();
+        await toggleTranscriptPanelBySwipe(verticalDistance);
         return;
     }
 
@@ -376,7 +376,54 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    window.scrollTo({top: 0, left: 0, behavior: 'auto'});
+    const top = shouldScrollToDocumentTop()
+        ? 0
+        : window.scrollY + elements.slideStage.getBoundingClientRect().top;
+    window.scrollTo({top, left: 0, behavior: 'auto'});
+    centerSlideStageHorizontally();
+}
+
+function shouldScrollToDocumentTop() {
+    if (hasStackedSidebarAboveStage()) {
+        return false;
+    }
+    return !hasVisibleContentBeforeSlideStage();
+}
+
+function hasStackedSidebarAboveStage() {
+    const stageRoot = elements.slideStage.closest('.stage');
+    if (!stageRoot) {
+        return false;
+    }
+    return stageRoot.getBoundingClientRect().top > 1;
+}
+
+function hasVisibleContentBeforeSlideStage() {
+    const stageRoot = elements.slideStage.closest('.stage');
+    if (!stageRoot) {
+        return false;
+    }
+
+    for (const child of stageRoot.children) {
+        if (child === elements.slideStage) {
+            break;
+        }
+        if (child === elements.playerToolbar) {
+            continue;
+        }
+        if (child.classList.contains('hidden')) {
+            continue;
+        }
+        if (child.getBoundingClientRect().height > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function centerSlideStageHorizontally() {
+    const horizontalOverflow = elements.slideStage.scrollWidth - elements.slideStage.clientWidth;
+    elements.slideStage.scrollLeft = Math.max(0, horizontalOverflow / 2);
 }
 
 function clearSlideAdvanceTimer() {
@@ -739,6 +786,7 @@ async function renderCurrentSlide() {
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
         elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
+        centerSlideStageHorizontally();
         if (elements.showtimeCountdown) {
             renderShowtimeDash();
         }
@@ -760,6 +808,7 @@ async function renderCurrentSlide() {
       ${html}
     </article>
   `;
+    centerSlideStageHorizontally();
 
     await hydrateAsyncAssets();
 
@@ -924,6 +973,17 @@ async function hideTranscriptPanelBySwipe() {
         return;
     }
     setTranscriptPanelVisibility(false);
+}
+
+async function toggleTranscriptPanelBySwipe(verticalDistance) {
+    if (verticalDistance >= 0) {
+        return;
+    }
+    if (isTranscriptPanelOpen()) {
+        await hideTranscriptPanelBySwipe();
+        return;
+    }
+    await showTranscriptPanelBySwipe();
 }
 
 function renderSlideList() {
