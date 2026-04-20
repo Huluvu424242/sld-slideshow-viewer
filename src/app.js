@@ -376,7 +376,7 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    window.scrollTo({top: 0, left: 0, behavior: 'auto'});
 }
 
 function clearSlideAdvanceTimer() {
