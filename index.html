@@ -19,44 +19,10 @@
     <div class="app-shell">
       <main class="stage">
       <h1>Slideshow Viewer</h1>
-      <div class="project-intro">
-        <p class="project-links">
-          Quellen:
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer" target="_blank" rel="noreferrer">
-                    sld-slideshow-viewer
-                </a>,
-                <a href="https://huluvu424242.github.io/foile-pile/" target="_blank" rel="noreferrer">
-                    Präsentationen (Sammlung)
-                </a>
-        </p>
-        <p class="project-links">
-          Dokumentation:
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/README.md" target="_blank"
-                   rel="noreferrer">Doku-Index</a>,
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/README.md" target="_blank"
-                   rel="noreferrer">README</a>,
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/createslideshow.md"
-                   target="_blank" rel="noreferrer">Create Slideshow</a>,
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/architecture.md"
-                   target="_blank" rel="noreferrer">Architektur</a>,
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/manifest.md" target="_blank"
-                   rel="noreferrer">Manifest</a>,
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/sld-spec.md" target="_blank"
-                   rel="noreferrer">SLD-Spec</a>,
-                <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/roadmap.md" target="_blank"
-                   rel="noreferrer">Roadmap</a>
-        </p>
-      </div>
-
         <div id="error-box" class="error-box hidden" role="alert"></div>
 
         <article id="slide-stage" class="slide-stage hidden">
-          <div id="slide-content" class="slide-content">
-            <div class="placeholder">
-              <h2>Noch keine Slideshow geladen</h2>
-              <p>Öffne ein Verzeichnis, ein SLD, ein ZIP oder eine Remote-Quelle mit <code>slides.json</code>.</p>
-            </div>
-          </div>
+          <div id="slide-content" class="slide-content"></div>
           <section id="transcript-panel" class="transcript-panel hidden" aria-live="polite">
             <h3>Audioinhalt der aktuellen Folie</h3>
             <p id="transcript-hint" class="muted small"></p>
@@ -197,6 +163,35 @@
             <dt>Audio</dt><dd id="audio-status">Gestoppt</dd>
           </dl>
         </section>
+
+        <div class="project-intro panel">
+          <p class="project-links">
+            Quellen:
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer" target="_blank" rel="noreferrer">
+                      sld-slideshow-viewer
+                  </a>,
+                  <a href="https://huluvu424242.github.io/foile-pile/" target="_blank" rel="noreferrer">
+                      Präsentationen (Sammlung)
+                  </a>
+          </p>
+          <p class="project-links">
+            Dokumentation:
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/README.md" target="_blank"
+                     rel="noreferrer">Doku-Index</a>,
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/README.md" target="_blank"
+                     rel="noreferrer">README</a>,
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/createslideshow.md"
+                     target="_blank" rel="noreferrer">Create Slideshow</a>,
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/architecture.md"
+                     target="_blank" rel="noreferrer">Architektur</a>,
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/manifest.md" target="_blank"
+                     rel="noreferrer">Manifest</a>,
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/sld-spec.md" target="_blank"
+                     rel="noreferrer">SLD-Spec</a>,
+                  <a href="https://github.com/Huluvu424242/sld-slideshow-viewer/blob/master/docs/roadmap.md" target="_blank"
+                     rel="noreferrer">Roadmap</a>
+          </p>
+        </div>
       </main>
     </div>
 

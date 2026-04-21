@@ -804,7 +804,7 @@ async function renderCurrentSlide() {
     setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
-        elements.slideContent.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
+        elements.slideContent.innerHTML = '';
         centerSlideStageHorizontally();
         if (elements.showtimeCountdown) {
             renderShowtimeDash();
