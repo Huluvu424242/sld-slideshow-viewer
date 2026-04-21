@@ -377,17 +377,9 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    const scrollAnchor = getStageScrollAnchor();
-    const top = window.scrollY + scrollAnchor.getBoundingClientRect().top;
+    const top = window.scrollY + elements.showtimeProgressTrack.getBoundingClientRect().top;
     window.scrollTo({top, left: 0, behavior: 'auto'});
     centerSlideStageHorizontally();
-}
-
-function getStageScrollAnchor() {
-    if (elements.showtimeProgressTrack && !elements.showtimeProgressTrack.classList.contains('hidden')) {
-        return elements.showtimeProgressTrack;
-    }
-    return elements.slideStage;
 }
 
 function centerSlideStageHorizontally() {
