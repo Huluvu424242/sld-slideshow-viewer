@@ -377,49 +377,17 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    const top = shouldScrollToDocumentTop()
-        ? 0
-        : window.scrollY + elements.slideStage.getBoundingClientRect().top;
+    const scrollAnchor = getStageScrollAnchor();
+    const top = window.scrollY + scrollAnchor.getBoundingClientRect().top;
     window.scrollTo({top, left: 0, behavior: 'auto'});
     centerSlideStageHorizontally();
 }
 
-function shouldScrollToDocumentTop() {
-    if (hasStackedSidebarAboveStage()) {
-        return false;
+function getStageScrollAnchor() {
+    if (elements.showtimeProgressTrack && !elements.showtimeProgressTrack.classList.contains('hidden')) {
+        return elements.showtimeProgressTrack;
     }
-    return !hasVisibleContentBeforeSlideStage();
-}
-
-function hasStackedSidebarAboveStage() {
-    const stageRoot = elements.slideStage.closest('.stage');
-    if (!stageRoot) {
-        return false;
-    }
-    return stageRoot.getBoundingClientRect().top > 1;
-}
-
-function hasVisibleContentBeforeSlideStage() {
-    const stageRoot = elements.slideStage.closest('.stage');
-    if (!stageRoot) {
-        return false;
-    }
-
-    for (const child of stageRoot.children) {
-        if (child === elements.slideStage) {
-            break;
-        }
-        if (child === elements.playerToolbar) {
-            continue;
-        }
-        if (child.classList.contains('hidden')) {
-            continue;
-        }
-        if (child.getBoundingClientRect().height > 0) {
-            return true;
-        }
-    }
-    return false;
+    return elements.slideStage;
 }
 
 function centerSlideStageHorizontally() {
