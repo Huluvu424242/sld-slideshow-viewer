@@ -21,8 +21,22 @@
       <h1>Slideshow Viewer</h1>
         <div id="error-box" class="error-box hidden" role="alert"></div>
 
-        <div id="showtime-progress-track" class="toolbar-progress hidden" aria-hidden="true">
-          <span id="showtime-progress" class="showtime-progress"></span>
+        <div class="showtime-strip">
+          <button
+            id="transcript-toggle-btn"
+            class="icon-btn icon-btn--transcript"
+            type="button"
+            title="Audiotext einblenden"
+            aria-label="Audiotext einblenden"
+            aria-expanded="false"
+            aria-pressed="false"
+            data-icon="eye"
+          >
+          </button>
+          <output id="showtime-countdown" class="showtime-countdown is-safe" aria-live="polite">–</output>
+          <div id="showtime-progress-track" class="toolbar-progress hidden" aria-hidden="true">
+            <span id="showtime-progress" class="showtime-progress"></span>
+          </div>
         </div>
 
         <article id="slide-stage" class="slide-stage hidden">
@@ -96,18 +110,6 @@
             </button>
           </div>
           <div class="toolbar-group">
-            <button
-              id="transcript-toggle-btn"
-              class="icon-btn icon-btn--transcript"
-              type="button"
-              title="Audiotext einblenden"
-              aria-label="Audiotext einblenden"
-              aria-expanded="false"
-              aria-pressed="false"
-              data-icon="eye"
-            >
-            </button>
-            <output id="showtime-countdown" class="showtime-countdown is-safe" aria-live="polite">–</output>
             <label class="checkbox-inline">
               <input id="autoplay-next-checkbox" type="checkbox" checked>
               <span>Nächste Folie automatisch</span>
