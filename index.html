@@ -21,6 +21,10 @@
       <h1>Slideshow Viewer</h1>
         <div id="error-box" class="error-box hidden" role="alert"></div>
 
+        <div id="showtime-progress-track" class="toolbar-progress hidden" aria-hidden="true">
+          <span id="showtime-progress" class="showtime-progress"></span>
+        </div>
+
         <article id="slide-stage" class="slide-stage hidden">
           <div id="slide-content" class="slide-content"></div>
           <section id="transcript-panel" class="transcript-panel hidden" aria-live="polite">
@@ -32,9 +36,6 @@
         </article>
 
         <header id="player-toolbar" class="toolbar panel">
-          <div class="toolbar-progress">
-            <span id="showtime-progress" class="showtime-progress"></span>
-          </div>
           <div class="toolbar-group toolbar-group--primary">
             <button id="first-btn"
                     class="icon-btn icon-btn-first"

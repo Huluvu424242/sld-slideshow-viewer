@@ -1045,6 +1045,7 @@ function refreshUi() {
     elements.slideCounter.textContent = slideCount > 0 ? `${state.currentIndex + 1} / ${slideCount}` : '0 / 0';
     elements.autoplayNextCheckbox.checked = state.autoAdvance;
     elements.slideStage.classList.toggle('hidden', slideCount < 1);
+    elements.showtimeProgressTrack.classList.toggle('hidden', slideCount < 1);
     elements.slideListPanel.classList.toggle('hidden', slideCount < 1);
 
     const disabled = !state.deck || isSlideTransitionInProgress;
