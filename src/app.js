@@ -283,7 +283,8 @@ async function handleTouchEnd(event) {
     resetSwipeState(swipeState);
 
     if (isHorizontalSwipe) {
-        if (horizontalDistance > 0) {
+        // On touch devices, a swipe to the left should navigate to the previous slide.
+        if (horizontalDistance < 0) {
             await goToSlide(state.currentIndex - 1);
             return;
         }
