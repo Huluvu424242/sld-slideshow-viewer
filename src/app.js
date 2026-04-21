@@ -208,6 +208,10 @@ function bindEvents() {
             event.preventDefault();
             await playCurrentSlide();
         }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            await toggleTranscriptPanel();
+        }
     });
 
     registerStageInteractionArea(elements.slideStage);
@@ -962,7 +966,7 @@ async function hideTranscriptPanelBySwipe() {
 }
 
 async function toggleTranscriptPanelBySwipe(verticalDistance) {
-    if (verticalDistance >= 0) {
+    if (verticalDistance <= 0) {
         return;
     }
     if (isTranscriptPanelOpen()) {
