@@ -16,7 +16,6 @@ export function bindPlayerButtonEvents({
     elements.prevBtn.addEventListener('click', () => goToSlide(getCurrentIndex() - 1));
     elements.nextBtn.addEventListener('click', () => goToSlide(getCurrentIndex() + 1));
     elements.lastBtn.addEventListener('click', () => goToSlide(getDeck()?.slides.length - 1 ?? -1));
-    elements.gotoBtn.addEventListener('click', () => goToSlide(Number(elements.gotoInput.value) - 1));
 
     elements.playBtn.addEventListener('click', async (event) => {
         event.preventDefault();

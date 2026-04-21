@@ -65,6 +65,7 @@ let singleTouchActionTimer = null;
 let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
 let transcriptRenderToken = 0;
+let showtimeCountdownTotalSeconds = null;
 
 await initApp();
 
@@ -207,8 +208,6 @@ function bindEvents() {
     });
 
     registerStageInteractionArea(elements.slideStage);
-    registerStageInteractionArea(elements.transcriptPanel);
-    registerStageInteractionArea(elements.errorBox);
 
     window.addEventListener('resize', () => {
         centerSlideStageHorizontally();
@@ -241,9 +240,7 @@ function isInteractiveControlTarget(target) {
 }
 
 function keepPlaybackButtonFocus() {
-    if (document.activeElement === elements.gotoInput) {
-        elements.playBtn.focus({preventScroll: true});
-    }
+    elements.playBtn.focus({preventScroll: true});
 }
 
 function handleTouchStart(event) {
@@ -439,6 +436,10 @@ function clearShowtimeCountdown() {
         window.clearInterval(showtimeCountdownInterval);
         showtimeCountdownInterval = null;
     }
+    showtimeCountdownTotalSeconds = null;
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '0%';
+    }
 }
 
 function setPlayButtonActive(active) {
@@ -494,10 +495,14 @@ function getSlideShowtimeSeconds(slide) {
 
 function renderShowtimeCountdown(value) {
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
+    renderShowtimeProgress(value);
 }
 
 function renderShowtimeDash() {
     renderLayoutShowtimeDash(elements.showtimeCountdown);
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '0%';
+    }
 }
 
 function renderSpeakingIndicator() {
@@ -511,6 +516,9 @@ function showSlideChangeCueIndicator() {
     slideChangeCueIndicatorToken += 1;
     elements.showtimeCountdown.textContent = '🔔';
     elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '100%';
+    }
     return slideChangeCueIndicatorToken;
 }
 
@@ -536,6 +544,7 @@ function startShowtimeCountdown(slide, options = {}) {
     }
 
     nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
+    showtimeCountdownTotalSeconds = nonAudioPlaybackRemainingSeconds;
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -548,6 +557,15 @@ function startShowtimeCountdown(slide, options = {}) {
             setPlayButtonActive(false);
         }
     }, 1000);
+}
+
+function renderShowtimeProgress(remainingSeconds) {
+    if (!elements.showtimeProgress || !Number.isFinite(showtimeCountdownTotalSeconds) || showtimeCountdownTotalSeconds <= 0) {
+        return;
+    }
+    const elapsed = Math.max(0, showtimeCountdownTotalSeconds - remainingSeconds);
+    const progress = Math.max(0, Math.min(100, (elapsed / showtimeCountdownTotalSeconds) * 100));
+    elements.showtimeProgress.style.width = `${progress}%`;
 }
 
 function updateSlideAudioStatus(slide) {
@@ -786,7 +804,7 @@ async function renderCurrentSlide() {
     setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
-        elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
+        elements.slideContent.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
         centerSlideStageHorizontally();
         if (elements.showtimeCountdown) {
             renderShowtimeDash();
@@ -804,7 +822,7 @@ async function renderCurrentSlide() {
     };
 
     const html = renderSlideContent(slide, assetResolver);
-    elements.slideStage.innerHTML = `
+    elements.slideContent.innerHTML = `
     <article class="slide-card" data-slide-id="${escapeHtml(slide.id || '')}">
       ${html}
     </article>
@@ -1019,9 +1037,9 @@ function refreshUi() {
     elements.deckTitle.textContent = state.deck?.title ?? '–';
     elements.sourceKind.textContent = state.sourceKind ?? '–';
     elements.slideCounter.textContent = slideCount > 0 ? `${state.currentIndex + 1} / ${slideCount}` : '0 / 0';
-    elements.gotoInput.max = String(Math.max(slideCount, 1));
-    elements.gotoInput.value = slideCount > 0 ? String(state.currentIndex + 1) : '1';
     elements.autoplayNextCheckbox.checked = state.autoAdvance;
+    elements.slideStage.classList.toggle('hidden', slideCount < 1);
+    elements.slideListPanel.classList.toggle('hidden', slideCount < 1);
 
     const disabled = !state.deck || isSlideTransitionInProgress;
     for (const button of [
@@ -1032,12 +1050,9 @@ function refreshUi() {
         elements.stopBtn,
         elements.nextBtn,
         elements.lastBtn,
-        elements.gotoBtn,
     ]) {
         button.disabled = disabled;
     }
-
-    elements.gotoInput.disabled = disabled;
     elements.transcriptToggleBtn.disabled = disabled || !hasSlideAudioSource(currentSlide);
 }
 
@@ -1057,6 +1072,7 @@ async function toggleTranscriptPanel() {
 
 function setTranscriptPanelVisibility(isVisible) {
     elements.transcriptPanel.classList.toggle('hidden', !isVisible);
+    elements.slideContent.classList.toggle('hidden', isVisible);
     updateTranscriptToggleButton(elements.transcriptToggleBtn, isVisible);
 }
 function hideTranscriptPanel() {
