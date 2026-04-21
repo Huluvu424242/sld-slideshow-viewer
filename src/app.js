@@ -81,8 +81,14 @@ function createAudioController() {
     return new AudioController({
         onStatusChange(status) {
             elements.audioStatus.textContent = status;
+            const currentSlide = state.deck?.slides[state.currentIndex];
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
+            } else if (status === 'Pausiert' && hasSlideAudioSource(currentSlide) && nonAudioPlaybackRemainingSeconds === null) {
+                renderShowtimeDash();
+                if (elements.showtimeProgress) {
+                    elements.showtimeProgress.style.width = '100%';
+                }
             } else if (!showtimeCountdownInterval) {
                 renderShowtimeDash();
             }
@@ -91,9 +97,6 @@ function createAudioController() {
             await handleSlidePlaybackCompleted();
         },
         onFallbackTimerStart(seconds) {
-            if (!state.autoAdvance) {
-                return;
-            }
             setPlayButtonActive(true);
             startShowtimeCountdown(null, {seconds});
         },
@@ -507,6 +510,9 @@ function renderShowtimeDash() {
 
 function renderSpeakingIndicator() {
     renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '100%';
+    }
 }
 
 function showSlideChangeCueIndicator() {
