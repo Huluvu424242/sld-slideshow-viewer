@@ -208,7 +208,7 @@ function bindEvents() {
             event.preventDefault();
             await playCurrentSlide();
         }
-        if (event.key === 'ArrowDown') {
+        if (event.key === 'ArrowUp') {
             event.preventDefault();
             await toggleTranscriptPanel();
         }
