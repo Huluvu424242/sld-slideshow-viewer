@@ -377,7 +377,7 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    const top = window.scrollY + elements.showtimeProgressTrack.getBoundingClientRect().top;
+    const top = window.scrollY + elements.showtimeStrip.getBoundingClientRect().top;
     window.scrollTo({top, left: 0, behavior: 'auto'});
     centerSlideStageHorizontally();
 }

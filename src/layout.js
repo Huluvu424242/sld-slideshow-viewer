@@ -11,6 +11,7 @@ const ELEMENT_SELECTORS = {
     slideList: '#slide-list',
     slideStage: '#slide-stage',
     slideContent: '#slide-content',
+    showtimeStrip: '.showtime-strip',
     showtimeProgressTrack: '#showtime-progress-track',
     showtimeProgress: '#showtime-progress',
     showtimeCountdown: '#showtime-countdown',
