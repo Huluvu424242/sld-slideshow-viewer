@@ -208,6 +208,10 @@ function bindEvents() {
             event.preventDefault();
             await playCurrentSlide();
         }
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            await toggleTranscriptPanel();
+        }
     });
 
     registerStageInteractionArea(elements.slideStage);
@@ -377,7 +381,7 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    const top = window.scrollY + elements.showtimeProgressTrack.getBoundingClientRect().top;
+    const top = window.scrollY + elements.showtimeStrip.getBoundingClientRect().top;
     window.scrollTo({top, left: 0, behavior: 'auto'});
     centerSlideStageHorizontally();
 }
@@ -962,7 +966,7 @@ async function hideTranscriptPanelBySwipe() {
 }
 
 async function toggleTranscriptPanelBySwipe(verticalDistance) {
-    if (verticalDistance >= 0) {
+    if (verticalDistance <= 0) {
         return;
     }
     if (isTranscriptPanelOpen()) {
