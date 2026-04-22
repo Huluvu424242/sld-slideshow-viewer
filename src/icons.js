@@ -141,46 +141,43 @@ export const ICONS = Object.freeze({
      * Quelle: selbst erstellt
      */
     glocke: `
-    <svg xmlns="http://www.w3.org/2000/svg"
-        class="icno"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
     >
-        <defs>
-            <!-- Hauptgold -->
-            <linearGradient id="g24" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#fff3a0"/>
-                <stop offset="40%" stop-color="#f7c21c"/>
-                <stop offset="75%" stop-color="#d08d00"/>
-                <stop offset="100%" stop-color="#8c5300"/>
-            </linearGradient>
+      <defs>
+        <linearGradient id="g24" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fff3a0"/>
+          <stop offset="40%" stop-color="#f7c21c"/>
+          <stop offset="75%" stop-color="#d08d00"/>
+          <stop offset="100%" stop-color="#8c5300"/>
+        </linearGradient>
     
-            <!-- Rand -->
-            <linearGradient id="rim24" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#ffd54d"/>
-                <stop offset="100%" stop-color="#8c5300"/>
-            </linearGradient>
+        <linearGradient id="rim24" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffd54d"/>
+          <stop offset="100%" stop-color="#8c5300"/>
+        </linearGradient>
     
-            <!-- Klöppel -->
-            <radialGradient id="clapper24" cx="35%" cy="30%" r="70%">
-                <stop offset="0%" stop-color="#fff2a6"/>
-                <stop offset="60%" stop-color="#d28c00"/>
-                <stop offset="100%" stop-color="#8c5300"/>
-            </radialGradient>
-        </defs>
+        <radialGradient id="clapper24" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fff2a6"/>
+          <stop offset="60%" stop-color="#d28c00"/>
+          <stop offset="100%" stop-color="#8c5300"/>
+        </radialGradient>
+      </defs>
     
-        <!-- Aufhängung -->
-        <path
-                d="M9 5a3 3 0 0 1 6 0v1h-2V5a1 1 0 0 0-2 0v1H9z"
-                fill="url(#g24)"
-                stroke="#8c5300"
-                stroke-width="0.8"
-                stroke-linejoin="round"
-        />
+      <!-- Aufhängung -->
+      <path
+        d="M9 5a3 3 0 0 1 6 0v1h-2V5a1 1 0 0 0-2 0v1H9z"
+        fill="url(#g24)"
+        stroke="#8c5300"
+        stroke-width="0.8"
+        stroke-linejoin="round"
+      />
     
-        <!-- Glocke -->
-        <path
-                d="M12 6
+      <!-- Glocke -->
+      <path
+        d="M12 6
            C16 6 18 9 18 13
            C18 15 19 16 20 17
            C20.5 17.5 20 18.5 19 18.5
@@ -188,45 +185,45 @@ export const ICONS = Object.freeze({
            C4 18.5 3.5 17.5 4 17
            C5 16 6 15 6 13
            C6 9 8 6 12 6Z"
-                fill="url(#g24)"
-                stroke="#8c5300"
-                stroke-width="0.9"
-                stroke-linejoin="round"
-        />
+        fill="url(#g24)"
+        stroke="#8c5300"
+        stroke-width="0.9"
+        stroke-linejoin="round"
+      />
     
-        <!-- Glanz -->
-        <path
-                d="M8 9
+      <!-- Glanz -->
+      <path
+        d="M8 9
            C9 7.8 10.5 7.3 12 7.5
            C10 9 9.5 11 9.5 13
            C9.5 14 9.2 15 8.7 15.5
            C7.5 14.5 7 13 7 11.5
            C7 10.5 7.3 9.5 8 9Z"
-                fill="#fff8c0"
-                opacity="0.5"
-        />
+        fill="#fff8c0"
+        opacity="0.5"
+      />
     
-        <!-- unterer Rand -->
-        <path
-                d="M5 18
+      <!-- unterer Rand -->
+      <path
+        d="M5 18
            C7 19 9 19.5 12 19.5
            C15 19.5 17 19 19 18
            C19.5 18.5 19 19.5 18 20
            C16.5 20.5 14.5 21 12 21
            C9.5 21 7.5 20.5 6 20
            C5 19.5 4.5 18.5 5 18Z"
-                fill="url(#rim24)"
-        />
+        fill="url(#rim24)"
+      />
     
-        <!-- Klöppel -->
-        <circle
-                cx="12"
-                cy="17"
-                r="1.8"
-                fill="url(#clapper24)"
-                stroke="#8c5300"
-                stroke-width="0.6"
-        />
+      <!-- Klöppel (nach unten verschoben) -->
+      <circle
+        cx="12"
+        cy="18.4"
+        r="1.8"
+        fill="url(#clapper24)"
+        stroke="#8c5300"
+        stroke-width="0.6"
+      />
     </svg>
   `,
     /*
