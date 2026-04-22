@@ -69,6 +69,7 @@ let transcriptRenderToken = 0;
 let showtimeCountdownTotalSeconds = null;
 let currentErrorMessage = '';
 let isErrorExpanded = false;
+let isPausedByErrorToggle = false;
 
 await initApp();
 
@@ -208,7 +209,7 @@ function bindEvents() {
     });
     elements.showtimeCountdown.addEventListener('click', (event) => {
         event.preventDefault();
-        toggleErrorMessageVisibility();
+        void toggleErrorMessageVisibility();
     });
 
     document.addEventListener('keydown', async (event) => {
@@ -524,17 +525,36 @@ function clearApplicationError() {
     updateShowtimeIndicatorState();
 }
 
-function toggleErrorMessageVisibility() {
+async function toggleErrorMessageVisibility() {
     if (!currentErrorMessage || elements.showtimeCountdown.disabled) {
         return;
     }
+
+    const wasRunningBeforeToggle = isPresentationRunning();
     isErrorExpanded = !isErrorExpanded;
     if (isErrorExpanded) {
         showError(elements.errorBox, currentErrorMessage);
+        if (wasRunningBeforeToggle) {
+            await pausePresentation();
+            isPausedByErrorToggle = true;
+        } else {
+            isPausedByErrorToggle = false;
+        }
     } else {
         hideError(elements.errorBox);
+        if (isPausedByErrorToggle) {
+            isPausedByErrorToggle = false;
+            await resumePresentation();
+        }
     }
     updateShowtimeIndicatorState();
+}
+
+function clearErrorPauseByInteraction() {
+    if (!isPausedByErrorToggle) {
+        return;
+    }
+    isPausedByErrorToggle = false;
 }
 
 function isSlideChangeCueIndicatorVisible() {
@@ -746,6 +766,7 @@ async function setDeck(deck) {
 }
 
 async function goToSlide(index, options = {}) {
+    clearErrorPauseByInteraction();
     if (isSlideTransitionInProgress) {
         return;
     }
@@ -934,6 +955,7 @@ async function hydrateAsyncAssets() {
 }
 
 async function playCurrentSlide(options = {}) {
+    clearErrorPauseByInteraction();
     if (isSlideTransitionInProgress && !options.ignoreTransitionLock) {
         return;
     }
@@ -1018,6 +1040,7 @@ async function pausePresentation() {
 }
 
 async function resumePresentation() {
+    clearErrorPauseByInteraction();
     if (!hasPresentationStarted) {
         return;
     }
@@ -1046,6 +1069,7 @@ async function resumePresentation() {
 }
 
 async function stopPresentation() {
+    clearErrorPauseByInteraction();
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
     nonAudioPlaybackRemainingSeconds = null;
@@ -1138,6 +1162,7 @@ function hasSlideAudioSource(slide) {
 }
 
 async function toggleTranscriptPanel() {
+    clearErrorPauseByInteraction();
     const shouldOpen = !isTranscriptPanelOpen();
     if (shouldOpen) {
         await renderTranscriptContent({keepOpen: true});
