@@ -64,7 +64,7 @@ export function renderShowtimeDash(element) {
         return;
     }
 
-    element.textContent = '–';
+    element.textContent = '';
     element.classList.remove('is-danger', 'is-safe', 'is-speaking', 'is-error');
 }
 
