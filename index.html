@@ -19,9 +19,18 @@
     <div class="app-shell">
       <main class="stage">
       <h1>Slideshow Viewer</h1>
-        <div id="error-box" class="error-box hidden" role="alert"></div>
-
         <div class="showtime-strip">
+          <button
+            id="error-toggle-btn"
+            class="icon-btn icon-btn--error hidden"
+            type="button"
+            title="Fehlermeldung einblenden"
+            aria-label="Fehlermeldung einblenden"
+            aria-expanded="false"
+            aria-pressed="false"
+            data-icon="error_info"
+          >
+          </button>
           <button
             id="transcript-toggle-btn"
             class="icon-btn icon-btn--transcript"
@@ -38,6 +47,7 @@
             <span id="showtime-progress" class="showtime-progress"></span>
           </div>
         </div>
+        <div id="error-box" class="error-box hidden" role="alert"></div>
 
         <article id="slide-stage" class="slide-stage hidden">
           <div id="slide-content" class="slide-content"></div>

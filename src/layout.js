@@ -15,6 +15,7 @@ const ELEMENT_SELECTORS = {
     showtimeProgressTrack: '#showtime-progress-track',
     showtimeProgress: '#showtime-progress',
     showtimeCountdown: '#showtime-countdown',
+    errorToggleBtn: '#error-toggle-btn',
     transcriptToggleBtn: '#transcript-toggle-btn',
     transcriptPanel: '#transcript-panel',
     transcriptHint: '#transcript-hint',
@@ -97,6 +98,20 @@ export function updateTranscriptToggleButton(button, isVisible) {
     button.classList.toggle('is-open', isVisible);
 
     const tooltipText = isVisible ? 'Audiotext ausblenden' : 'Audiotext einblenden';
+    button.title = tooltipText;
+    button.setAttribute('aria-label', tooltipText);
+}
+
+export function updateErrorToggleButton(button, {hasError, isExpanded}) {
+    button.classList.toggle('hidden', !hasError);
+    button.disabled = !hasError;
+    button.classList.toggle('is-active', hasError && isExpanded);
+    button.setAttribute('aria-expanded', String(hasError && isExpanded));
+    button.setAttribute('aria-pressed', String(hasError && isExpanded));
+
+    const tooltipText = hasError
+        ? (isExpanded ? 'Fehlermeldung ausblenden' : 'Fehlermeldung einblenden')
+        : 'Keine Fehlermeldung vorhanden';
     button.title = tooltipText;
     button.setAttribute('aria-label', tooltipText);
 }
