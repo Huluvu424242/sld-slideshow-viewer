@@ -135,6 +135,27 @@ export const ICONS = Object.freeze({
     </svg>
   `,
     /*
+     * Icon: glocke
+     * Autor: Huluvu424242
+     * Lizenz: MIT
+     * Quelle: selbst erstellt
+     */
+    glocke: `
+    <svg xmlns="http://www.w3.org/2000/svg"
+      class="icon"  viewBox="0 0 24 24"  
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3.5a4 4 0 0 0-4 4v1.2c0 .9-.2 1.8-.6 2.6L6.2 14a2 2 0 0 0 1.8 3h8a2 2 0 0 0 1.8-3l-1.2-2.7c-.4-.8-.6-1.7-.6-2.6V7.5a4 4 0 0 0-4-4Z"/>
+      <path d="M10.2 17.5a2 2 0 0 0 3.6 0"/>
+      <path d="M10.8 3.8a1.5 1.5 0 0 1 2.4 0"/>
+    </svg>
+  `,
+    /*
      * Icon: help
      * Autor: Huluvu424242
      * Lizenz: MIT
