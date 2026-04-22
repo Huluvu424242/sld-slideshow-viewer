@@ -472,11 +472,19 @@ function getSlideShowtimeSeconds(slide) {
 }
 
 function renderShowtimeCountdown(value) {
+    if (isErrorVisible()) {
+        renderShowtimeErrorIndicator();
+        return;
+    }
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
     renderShowtimeProgress(value);
 }
 
 function renderShowtimeDash() {
+    if (isErrorVisible()) {
+        renderShowtimeErrorIndicator();
+        return;
+    }
     renderLayoutShowtimeDash(elements.showtimeCountdown);
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
@@ -484,6 +492,10 @@ function renderShowtimeDash() {
 }
 
 function renderSpeakingIndicator() {
+    if (isErrorVisible()) {
+        renderShowtimeErrorIndicator();
+        return;
+    }
     renderLayoutSpeakingIndicator(elements.showtimeCountdown);
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '100%';
@@ -500,6 +512,10 @@ function renderShowtimeErrorIndicator() {
 function showApplicationError(message) {
     showError(elements.errorBox, message);
     renderShowtimeErrorIndicator();
+}
+
+function isErrorVisible() {
+    return elements.errorBox && !elements.errorBox.classList.contains('hidden');
 }
 
 function showSlideChangeCueIndicator() {
