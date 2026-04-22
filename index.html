@@ -21,17 +21,6 @@
       <h1>Slideshow Viewer</h1>
         <div class="showtime-strip">
           <button
-            id="error-toggle-btn"
-            class="icon-btn icon-btn--error hidden"
-            type="button"
-            title="Fehlermeldung einblenden"
-            aria-label="Fehlermeldung einblenden"
-            aria-expanded="false"
-            aria-pressed="false"
-            data-icon="error_info"
-          >
-          </button>
-          <button
             id="transcript-toggle-btn"
             class="icon-btn icon-btn--transcript"
             type="button"
@@ -42,7 +31,16 @@
             data-icon="eye"
           >
           </button>
-          <output id="showtime-countdown" class="showtime-countdown is-safe" aria-live="polite"></output>
+          <button
+            id="showtime-countdown"
+            class="showtime-countdown is-safe"
+            type="button"
+            title="Keine Fehlermeldung vorhanden"
+            aria-label="Keine Fehlermeldung vorhanden"
+            aria-expanded="false"
+            aria-pressed="false"
+            aria-live="polite"
+          ></button>
           <div id="showtime-progress-track" class="toolbar-progress hidden" aria-hidden="true">
             <span id="showtime-progress" class="showtime-progress"></span>
           </div>

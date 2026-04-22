@@ -28,10 +28,10 @@ import {initializeIcons, setIcon} from './icons.js';
 import {
     collectLayoutElements,
     registerLayoutLifecycleHooks,
-    updateErrorToggleButton,
     renderShowtimeCountdown as renderLayoutShowtimeCountdown,
     renderShowtimeDash as renderLayoutShowtimeDash,
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
+    renderShowtimeErrorIndicator as renderLayoutShowtimeErrorIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
 import {hideError, showError, withErrorHandling} from './error.js';
@@ -69,6 +69,7 @@ let transcriptRenderToken = 0;
 let showtimeCountdownTotalSeconds = null;
 let currentErrorMessage = '';
 let isErrorExpanded = false;
+let isPausedByErrorToggle = false;
 
 await initApp();
 
@@ -206,9 +207,9 @@ function bindEvents() {
             syncAutoSlideChangeForCurrentSlide();
         }
     });
-    elements.errorToggleBtn.addEventListener('click', (event) => {
+    elements.showtimeCountdown.addEventListener('click', (event) => {
         event.preventDefault();
-        toggleErrorMessageVisibility();
+        void toggleErrorMessageVisibility();
     });
 
     document.addEventListener('keydown', async (event) => {
@@ -480,53 +481,123 @@ function getSlideShowtimeSeconds(slide) {
 }
 
 function renderShowtimeCountdown(value) {
-    renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
+    if (currentErrorMessage && !isSlideChangeCueIndicatorVisible()) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else {
+        renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
+    }
     renderShowtimeProgress(value);
+    updateShowtimeErrorToggleState();
 }
 
 function renderShowtimeDash() {
-    renderLayoutShowtimeDash(elements.showtimeCountdown);
+    if (currentErrorMessage && !isSlideChangeCueIndicatorVisible()) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else {
+        renderLayoutShowtimeDash(elements.showtimeCountdown);
+    }
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
     }
+    updateShowtimeErrorToggleState();
 }
 
 function renderSpeakingIndicator() {
-    renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    if (currentErrorMessage && !isSlideChangeCueIndicatorVisible()) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else {
+        renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    }
+    updateShowtimeErrorToggleState();
 }
 
 function showApplicationError(message) {
     currentErrorMessage = String(message ?? '').trim();
     isErrorExpanded = false;
     hideError(elements.errorBox);
-    updateErrorToggleButtonState();
+    updateShowtimeIndicatorState();
 }
 
 function clearApplicationError() {
     currentErrorMessage = '';
     isErrorExpanded = false;
     hideError(elements.errorBox);
-    updateErrorToggleButtonState();
+    updateShowtimeIndicatorState();
 }
 
-function toggleErrorMessageVisibility() {
-    if (!currentErrorMessage) {
+async function toggleErrorMessageVisibility() {
+    if (!currentErrorMessage || elements.showtimeCountdown.disabled) {
         return;
     }
+
+    const wasRunningBeforeToggle = isPresentationRunning();
     isErrorExpanded = !isErrorExpanded;
     if (isErrorExpanded) {
         showError(elements.errorBox, currentErrorMessage);
+        if (wasRunningBeforeToggle) {
+            await pausePresentation();
+            isPausedByErrorToggle = true;
+        } else {
+            isPausedByErrorToggle = false;
+        }
     } else {
         hideError(elements.errorBox);
+        if (isPausedByErrorToggle) {
+            isPausedByErrorToggle = false;
+            await resumePresentation();
+        }
     }
-    updateErrorToggleButtonState();
+    updateShowtimeIndicatorState();
 }
 
-function updateErrorToggleButtonState() {
-    updateErrorToggleButton(elements.errorToggleBtn, {
-        hasError: Boolean(currentErrorMessage),
-        isExpanded: isErrorExpanded,
-    });
+function clearErrorPauseByInteraction() {
+    if (!isPausedByErrorToggle) {
+        return;
+    }
+    isPausedByErrorToggle = false;
+}
+
+function isSlideChangeCueIndicatorVisible() {
+    return elements.showtimeCountdown?.dataset.icon === 'glocke';
+}
+
+function updateShowtimeErrorToggleState() {
+    const hasError = Boolean(currentErrorMessage);
+    const isInteractive = hasError && elements.showtimeCountdown.classList.contains('is-error');
+    elements.showtimeCountdown.disabled = !isInteractive;
+    elements.showtimeCountdown.classList.toggle('is-active', hasError && isErrorExpanded && isInteractive);
+    elements.showtimeCountdown.setAttribute('aria-expanded', String(hasError && isErrorExpanded && isInteractive));
+    elements.showtimeCountdown.setAttribute('aria-pressed', String(hasError && isErrorExpanded && isInteractive));
+
+    const tooltipText = hasError
+        ? (isErrorExpanded ? 'Fehlermeldung ausblenden' : 'Fehlermeldung einblenden')
+        : 'Keine Fehlermeldung vorhanden';
+    elements.showtimeCountdown.title = tooltipText;
+    elements.showtimeCountdown.setAttribute('aria-label', tooltipText);
+}
+
+function updateShowtimeIndicatorState() {
+    if (isSlideChangeCueIndicatorVisible()) {
+        updateShowtimeErrorToggleState();
+        return;
+    }
+
+    if (currentErrorMessage) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else if (elements.audioStatus.textContent.startsWith('Spielt')) {
+        renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    } else if (nonAudioPlaybackRemainingSeconds !== null) {
+        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
+        return;
+    } else {
+        renderShowtimeDash();
+        return;
+    }
+
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '0%';
+    }
+    updateShowtimeErrorToggleState();
 }
 
 function showSlideChangeCueIndicator() {
@@ -539,6 +610,7 @@ function showSlideChangeCueIndicator() {
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '100%';
     }
+    updateShowtimeErrorToggleState();
     return slideChangeCueIndicatorToken;
 }
 
@@ -546,11 +618,7 @@ function restoreShowtimeCountdownAfterCue(token) {
     if (!elements.showtimeCountdown || token !== slideChangeCueIndicatorToken) {
         return;
     }
-    if (nonAudioPlaybackRemainingSeconds !== null) {
-        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
-        return;
-    }
-    renderShowtimeDash();
+    updateShowtimeIndicatorState();
 }
 
 function startShowtimeCountdown(slide, options = {}) {
@@ -698,6 +766,7 @@ async function setDeck(deck) {
 }
 
 async function goToSlide(index, options = {}) {
+    clearErrorPauseByInteraction();
     if (isSlideTransitionInProgress) {
         return;
     }
@@ -886,6 +955,7 @@ async function hydrateAsyncAssets() {
 }
 
 async function playCurrentSlide(options = {}) {
+    clearErrorPauseByInteraction();
     if (isSlideTransitionInProgress && !options.ignoreTransitionLock) {
         return;
     }
@@ -970,6 +1040,7 @@ async function pausePresentation() {
 }
 
 async function resumePresentation() {
+    clearErrorPauseByInteraction();
     if (!hasPresentationStarted) {
         return;
     }
@@ -998,6 +1069,7 @@ async function resumePresentation() {
 }
 
 async function stopPresentation() {
+    clearErrorPauseByInteraction();
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
     nonAudioPlaybackRemainingSeconds = null;
@@ -1090,6 +1162,7 @@ function hasSlideAudioSource(slide) {
 }
 
 async function toggleTranscriptPanel() {
+    clearErrorPauseByInteraction();
     const shouldOpen = !isTranscriptPanelOpen();
     if (shouldOpen) {
         await renderTranscriptContent({keepOpen: true});
