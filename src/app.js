@@ -30,6 +30,7 @@ import {
     registerLayoutLifecycleHooks,
     renderShowtimeCountdown as renderLayoutShowtimeCountdown,
     renderShowtimeDash as renderLayoutShowtimeDash,
+    renderShowtimeErrorIndicator as renderLayoutShowtimeErrorIndicator,
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
@@ -101,9 +102,16 @@ function createAudioController() {
             startShowtimeCountdown(null, {seconds});
         },
         onAudioIssue(message) {
-            showError(elements.errorBox, `⚠️ ${message}`);
+            showApplicationError(`⚠️ ${message}`);
         },
     });
+}
+
+async function withUiErrorHandling(fn) {
+    await withErrorHandling(elements.errorBox, fn);
+    if (!elements.errorBox.classList.contains('hidden')) {
+        renderShowtimeErrorIndicator();
+    }
 }
 
 function registerLifecycleHooks() {
@@ -128,7 +136,7 @@ function cleanupApplication() {
 
 function bindEvents() {
     elements.pickDirectoryBtn.addEventListener('click', async () => {
-        await withErrorHandling(elements.errorBox, async () => {
+        await withUiErrorHandling(async () => {
             const deck = await loadDeckFromDirectory();
             await setDeck(deck);
         });
@@ -139,7 +147,7 @@ function bindEvents() {
         if (!file) {
             return;
         }
-        await withErrorHandling(elements.errorBox, async () => {
+        await withUiErrorHandling(async () => {
             const deck = await loadDeckFromZip(file);
             await setDeck(deck);
             event.target.value = '';
@@ -147,7 +155,7 @@ function bindEvents() {
     });
 
     elements.loadRemoteBtn.addEventListener('click', async () => {
-        await withErrorHandling(elements.errorBox, async () => {
+        await withUiErrorHandling(async () => {
             const url = elements.remoteUrlInput.value.trim();
             if (!url) {
                 throw new Error('Bitte eine Remote-URL eingeben.');
@@ -168,7 +176,9 @@ function bindEvents() {
         pausePresentation,
         stopPresentation,
         keepPlaybackButtonFocus,
-        withErrorHandling,
+        withErrorHandling: async (_errorBox, fn) => {
+            await withUiErrorHandling(fn);
+        },
         errorBox: elements.errorBox,
     });
     bindAutoAdvanceToggle({
@@ -462,11 +472,19 @@ function getSlideShowtimeSeconds(slide) {
 }
 
 function renderShowtimeCountdown(value) {
+    if (isErrorVisible()) {
+        renderShowtimeErrorIndicator();
+        return;
+    }
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
     renderShowtimeProgress(value);
 }
 
 function renderShowtimeDash() {
+    if (isErrorVisible()) {
+        renderShowtimeErrorIndicator();
+        return;
+    }
     renderLayoutShowtimeDash(elements.showtimeCountdown);
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
@@ -474,10 +492,30 @@ function renderShowtimeDash() {
 }
 
 function renderSpeakingIndicator() {
+    if (isErrorVisible()) {
+        renderShowtimeErrorIndicator();
+        return;
+    }
     renderLayoutSpeakingIndicator(elements.showtimeCountdown);
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '100%';
     }
+}
+
+function renderShowtimeErrorIndicator() {
+    renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '100%';
+    }
+}
+
+function showApplicationError(message) {
+    showError(elements.errorBox, message);
+    renderShowtimeErrorIndicator();
+}
+
+function isErrorVisible() {
+    return elements.errorBox && !elements.errorBox.classList.contains('hidden');
 }
 
 function showSlideChangeCueIndicator() {
@@ -486,7 +524,7 @@ function showSlideChangeCueIndicator() {
     }
     slideChangeCueIndicatorToken += 1;
     elements.showtimeCountdown.textContent = '🔔';
-    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking', 'is-error');
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '100%';
     }
@@ -619,7 +657,7 @@ async function initializeFromQueryParameters() {
 
     elements.remoteUrlInput.value = remoteUrl;
 
-    await withErrorHandling(elements.errorBox, async () => {
+    await withUiErrorHandling(async () => {
         const deck = await loadDeckFromRemote(remoteUrl);
         await setDeck(deck);
     });
@@ -837,7 +875,7 @@ async function playCurrentSlide(options = {}) {
     if (!slide) {
         return;
     }
-    await withErrorHandling(elements.errorBox, async () => {
+    await withUiErrorHandling(async () => {
         hasPresentationStarted = true;
         pausedNonAudioRemainingSeconds = null;
         if (!slide.audio) {
@@ -1140,7 +1178,7 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
 
 function checkAudioSupport() {
     if (!audioController.isSpeechReallyUsable()) {
-        showError(elements.errorBox, `
+        showApplicationError(`
         ⚠️ Sprachwiedergabe wird von diesem Browser nicht unterstützt.
         👉 Bitte nutze ein Gerät mit funktionierender SpeechSynthesis, häufig funzt ein Chrome Browser.
         ℹ️ Falls eine Folie Audio per TTS benötigt, wird stattdessen eine Fallback-Showtime von 10 Sekunden verwendet.
