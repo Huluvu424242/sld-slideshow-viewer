@@ -67,8 +67,6 @@ let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
 let transcriptRenderToken = 0;
 let showtimeCountdownTotalSeconds = null;
-let showtimeProgressRemainingSeconds = null;
-let showtimeProgressOnlyMode = false;
 
 await initApp();
 
@@ -87,10 +85,8 @@ function createAudioController() {
             const currentSlide = state.deck?.slides[state.currentIndex];
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
-                if (isPlayableAudioSlide(currentSlide)) {
+                if (currentSlide?.audio) {
                     fillShowtimeProgress();
-                } else if (currentSlide?.audio && !showtimeCountdownInterval) {
-                    startShowtimeProgressOnly(currentSlide);
                 }
             } else if (status === 'Pausiert' && hasSlideAudioSource(currentSlide) && nonAudioPlaybackRemainingSeconds === null) {
                 renderShowtimeDash();
@@ -419,8 +415,6 @@ function clearShowtimeCountdown() {
         showtimeCountdownInterval = null;
     }
     showtimeCountdownTotalSeconds = null;
-    showtimeProgressRemainingSeconds = null;
-    showtimeProgressOnlyMode = false;
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
     }
@@ -555,8 +549,6 @@ function startShowtimeCountdown(slide, options = {}) {
 
     nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
     showtimeCountdownTotalSeconds = nonAudioPlaybackRemainingSeconds;
-    showtimeProgressRemainingSeconds = nonAudioPlaybackRemainingSeconds;
-    showtimeProgressOnlyMode = false;
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -567,26 +559,6 @@ function startShowtimeCountdown(slide, options = {}) {
         if (nonAudioPlaybackRemainingSeconds <= 0) {
             clearShowtimeCountdown();
             setPlayButtonActive(false);
-        }
-    }, 1000);
-}
-
-function startShowtimeProgressOnly(slide) {
-    clearShowtimeCountdown();
-    const seconds = getSlideShowtimeSeconds(slide);
-    showtimeCountdownTotalSeconds = seconds;
-    showtimeProgressRemainingSeconds = seconds;
-    showtimeProgressOnlyMode = true;
-    renderShowtimeProgress(showtimeProgressRemainingSeconds);
-    showtimeCountdownInterval = window.setInterval(() => {
-        if (!showtimeProgressOnlyMode || showtimeProgressRemainingSeconds === null) {
-            return;
-        }
-        showtimeProgressRemainingSeconds = Math.max(0, showtimeProgressRemainingSeconds - 1);
-        renderShowtimeProgress(showtimeProgressRemainingSeconds);
-        if (showtimeProgressRemainingSeconds <= 0) {
-            window.clearInterval(showtimeCountdownInterval);
-            showtimeCountdownInterval = null;
         }
     }, 1000);
 }
@@ -1099,14 +1071,6 @@ function refreshUi() {
 function hasSlideAudioSource(slide) {
     const source = slide?.audio?.src;
     return typeof source === 'string' && source.trim().length > 0;
-}
-
-function isPlayableAudioSlide(slide) {
-    if (!slide?.audio) {
-        return false;
-    }
-    const audioType = inferAudioType(slide.audio);
-    return isPlayableAudioType(audioType, slide.audio.src);
 }
 
 async function toggleTranscriptPanel() {
