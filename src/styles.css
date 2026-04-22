@@ -33,35 +33,26 @@ code {
 }
 
 .app-shell {
-    display: grid;
-    grid-template-columns: 360px 1fr;
+    display: block;
     min-height: 100vh;
-}
-
-.sidebar {
-    padding: 20px;
-    border-right: 1px solid var(--border);
-    background: linear-gradient(180deg, var(--panel), #15191f);
-    overflow: auto;
 }
 
 .stage {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    width: min(1260px, 100%);
+    margin: 0 auto;
+    padding: 20px;
+    gap: 14px;
 }
 
 .toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 16px;
     padding: 12px 18px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(19, 22, 26, 0.92);
-    position: sticky;
-    top: 0;
-    z-index: 2;
 }
 
 .toolbar-group {
@@ -72,7 +63,8 @@ code {
 }
 
 .transcript-panel {
-    margin: 12px 18px 0;
+    width: min(1200px, 100%);
+    margin: 0 auto;
     padding: 12px 14px;
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -98,6 +90,10 @@ code {
     display: block;
     margin-top: 10px;
     width: min(540px, 100%);
+}
+
+#transcript-audio-player.hidden {
+    display: none;
 }
 
 #transcript-audio-player.is-disabled {
@@ -183,11 +179,27 @@ button:disabled {
     flex-wrap: nowrap;
 }
 
+.showtime-strip {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .showtime-countdown {
-    min-width: 2ch;
+    width: 48px;
+    height: 48px;
     font-size: 1.4rem;
     font-weight: 700;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(35, 42, 52, 0.98), rgba(24, 30, 37, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .showtime-countdown.is-safe {
@@ -298,10 +310,6 @@ input[type="url"] {
     white-space: pre-line;
 }
 
-.error-box--stage {
-    margin: 12px 18px 0;
-}
-
 .slide-list {
     margin: 0;
     padding-left: 20px;
@@ -322,18 +330,28 @@ input[type="url"] {
 }
 
 .slide-stage {
-    padding: 28px;
+    padding: 20px;
     overflow: auto;
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    flex: 1;
+    flex: initial;
     touch-action: pan-y;
+    background: rgba(35, 42, 52, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 18px;
 }
 
-.slide-card {
+.slide-stage .slide-content {
+    width: 100%;
+}
+
+.slide-card,
+.placeholder {
     width: min(1200px, 100%);
-    min-height: calc(100vh - 120px);
+    margin-inline: auto;
+    min-height: min(70vh, 760px);
     background: linear-gradient(180deg, #f6f8fb, #e9eef6);
     color: #111827;
     border-radius: 28px;
@@ -368,14 +386,11 @@ input[type="url"] {
 }
 
 .placeholder {
-    width: min(920px, 100%);
-    min-height: calc(100vh - 120px);
     border: 2px dashed var(--border);
-    border-radius: 28px;
     display: grid;
     place-items: center;
     text-align: center;
-    color: var(--muted);
+    color: #334155;
 }
 
 .checkbox-inline {
@@ -385,16 +400,57 @@ input[type="url"] {
     padding-left: 6px;
 }
 
+.toolbar-progress {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(120, 182, 130, 0.15);
+    overflow: hidden;
+}
+
+.showtime-progress {
+    display: block;
+    width: 0%;
+    height: 100%;
+    background: #85f7a3;
+    transition: width 0.18s linear;
+}
+
+.icon-btn--help {
+    width: 34px;
+    height: 34px;
+}
+
+.icon-btn--help .icon {
+    width: 18px;
+    height: 18px;
+}
+
+.help-panel {
+    margin: 12px 18px 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(35, 42, 52, 0.55);
+}
+
+.help-panel h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.help-panel p {
+    margin: 10px 0 0;
+}
+
+.help-panel ul {
+    margin: 8px 0 0;
+    padding-left: 22px;
+    line-height: 1.45;
+}
+
 @media (max-width: 1100px) {
-    .app-shell {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-        border-right: 0;
-        border-bottom: 1px solid var(--border);
-    }
-
     .slide-card {
         padding: 28px;
         min-height: auto;

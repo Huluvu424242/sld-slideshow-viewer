@@ -7,9 +7,13 @@ const ELEMENT_SELECTORS = {
     audioStatus: '#audio-status',
     errorBox: '#error-box',
     playerToolbar: '#player-toolbar',
+    slideListPanel: '#slide-list-panel',
     slideList: '#slide-list',
     slideStage: '#slide-stage',
-    gotoInput: '#goto-input',
+    slideContent: '#slide-content',
+    showtimeStrip: '.showtime-strip',
+    showtimeProgressTrack: '#showtime-progress-track',
+    showtimeProgress: '#showtime-progress',
     showtimeCountdown: '#showtime-countdown',
     transcriptToggleBtn: '#transcript-toggle-btn',
     transcriptPanel: '#transcript-panel',
@@ -17,6 +21,8 @@ const ELEMENT_SELECTORS = {
     transcriptText: '#transcript-text',
     transcriptAudioPlayer: '#transcript-audio-player',
     autoplayNextCheckbox: '#autoplay-next-checkbox',
+    helpToggleBtn: '#help-toggle-btn',
+    helpPanel: '#help-panel',
     remoteUrlInput: '#remote-url-input',
     zipInput: '#zip-input',
     pickDirectoryBtn: '#pick-directory-btn',
@@ -28,7 +34,6 @@ const ELEMENT_SELECTORS = {
     stopBtn: '#stop-btn',
     nextBtn: '#next-btn',
     lastBtn: '#last-btn',
-    gotoBtn: '#goto-btn',
 };
 
 export function collectLayoutElements(root = document) {
@@ -48,7 +53,7 @@ export function renderShowtimeCountdown(element, value) {
     }
 
     const safeValue = Math.max(0, Math.floor(value));
-    element.textContent = String(safeValue);
+    element.textContent = '';
     element.classList.remove('is-speaking');
     element.classList.toggle('is-safe', safeValue > 3);
     element.classList.toggle('is-danger', safeValue <= 3);
@@ -59,7 +64,7 @@ export function renderShowtimeDash(element) {
         return;
     }
 
-    element.textContent = '–';
+    element.textContent = '';
     element.classList.remove('is-danger', 'is-safe', 'is-speaking');
 }
 

@@ -34,6 +34,13 @@ import {
     updateTranscriptToggleButton,
 } from './layout.js';
 import {showError, withErrorHandling} from './error.js';
+import {toggleHelpPanel} from './hilfe.js';
+import {
+    bindAutoAdvanceToggle,
+    bindPlayerButtonEvents,
+    scheduleAutoAdvanceForShowtime as scheduleAutoAdvanceForShowtimeInPlayer,
+    syncAutoSlideChangeForCurrentSlide as syncAutoSlideChangeForCurrentSlideInPlayer,
+} from './player.js';
 
 const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
@@ -57,6 +64,8 @@ let hasPresentationStarted = false;
 let singleTouchActionTimer = null;
 let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
+let transcriptRenderToken = 0;
+let showtimeCountdownTotalSeconds = null;
 
 await initApp();
 
@@ -72,8 +81,14 @@ function createAudioController() {
     return new AudioController({
         onStatusChange(status) {
             elements.audioStatus.textContent = status;
+            const currentSlide = state.deck?.slides[state.currentIndex];
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
+            } else if (status === 'Pausiert' && hasSlideAudioSource(currentSlide) && nonAudioPlaybackRemainingSeconds === null) {
+                renderShowtimeDash();
+                if (elements.showtimeProgress) {
+                    elements.showtimeProgress.style.width = '100%';
+                }
             } else if (!showtimeCountdownInterval) {
                 renderShowtimeDash();
             }
@@ -82,9 +97,6 @@ function createAudioController() {
             await handleSlidePlaybackCompleted();
         },
         onFallbackTimerStart(seconds) {
-            if (!state.autoAdvance) {
-                return;
-            }
             setPlayButtonActive(true);
             startShowtimeCountdown(null, {seconds});
         },
@@ -145,43 +157,30 @@ function bindEvents() {
         });
     });
 
-    elements.firstBtn.addEventListener('click', () => goToSlide(0));
-    elements.prevBtn.addEventListener('click', () => goToSlide(state.currentIndex - 1));
-    elements.nextBtn.addEventListener('click', () => goToSlide(state.currentIndex + 1));
-    elements.lastBtn.addEventListener('click', () => goToSlide(state.deck?.slides.length - 1 ?? -1));
-    elements.gotoBtn.addEventListener('click', () => goToSlide(Number(elements.gotoInput.value) - 1));
-    elements.playBtn.addEventListener('click', async (event) => {
+    bindPlayerButtonEvents({
+        elements,
+        getCurrentIndex: () => state.currentIndex,
+        getDeck: () => state.deck,
+        getAudioStatus: () => elements.audioStatus.textContent,
+        goToSlide,
+        resumePresentation,
+        playCurrentSlide,
+        pausePresentation,
+        stopPresentation,
+        keepPlaybackButtonFocus,
+        withErrorHandling,
+        errorBox: elements.errorBox,
+    });
+    bindAutoAdvanceToggle({
+        elements,
+        setAutoAdvanceEnabled(value) {
+            state.autoAdvance = value;
+        },
+        syncAutoSlideChangeForCurrentSlide,
+    });
+    elements.helpToggleBtn.addEventListener('click', (event) => {
         event.preventDefault();
-        if (!state.deck || state.currentIndex < 0) {
-            return;
-        }
-
-        if (elements.audioStatus.textContent === 'Pausiert') {
-            await resumePresentation();
-            keepPlaybackButtonFocus();
-            return;
-        }
-
-        await withErrorHandling(elements.errorBox, async () => {
-            await playCurrentSlide();
-        });
-        keepPlaybackButtonFocus();
-    });
-    elements.pauseBtn.addEventListener('click', async () => {
-        await pausePresentation();
-    });
-    elements.stopBtn.addEventListener('click', async () => {
-        clearSlideAdvanceTimer();
-        clearShowtimeCountdown();
-        nonAudioPlaybackRemainingSeconds = null;
-        pausedNonAudioRemainingSeconds = null;
-        hasPresentationStarted = false;
-        setPlayButtonActive(false);
-        await audioController.stop();
-    });
-    elements.autoplayNextCheckbox.addEventListener('change', () => {
-        state.autoAdvance = elements.autoplayNextCheckbox.checked;
-        syncAutoSlideChangeForCurrentSlide();
+        toggleHelpPanel(elements.helpPanel, elements.helpToggleBtn);
     });
     elements.transcriptToggleBtn.addEventListener('click', async (event) => {
         event.preventDefault();
@@ -209,11 +208,17 @@ function bindEvents() {
             event.preventDefault();
             await playCurrentSlide();
         }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            await toggleTranscriptPanel();
+        }
     });
 
     registerStageInteractionArea(elements.slideStage);
-    registerStageInteractionArea(elements.transcriptPanel);
-    registerStageInteractionArea(elements.errorBox);
+
+    window.addEventListener('resize', () => {
+        centerSlideStageHorizontally();
+    });
 }
 
 function registerStageInteractionArea(element) {
@@ -242,9 +247,7 @@ function isInteractiveControlTarget(target) {
 }
 
 function keepPlaybackButtonFocus() {
-    if (document.activeElement === elements.gotoInput) {
-        elements.playBtn.focus({preventScroll: true});
-    }
+    elements.playBtn.focus({preventScroll: true});
 }
 
 function handleTouchStart(event) {
@@ -280,21 +283,18 @@ async function handleTouchEnd(event) {
     resetSwipeState(swipeState);
 
     if (isHorizontalSwipe) {
-        if (horizontalDistance > 0) {
-            await goToSlide(state.currentIndex - 1);
+        // On touch devices, a swipe to the left should navigate to the next slide.
+        if (horizontalDistance < 0) {
+            await goToSlide(state.currentIndex + 1);
             return;
         }
 
-        await goToSlide(state.currentIndex + 1);
+        await goToSlide(state.currentIndex - 1);
         return;
     }
 
     if (isVerticalSwipe) {
-        if (verticalDistance < 0) {
-            await showTranscriptPanelBySwipe();
-            return;
-        }
-        await hideTranscriptPanelBySwipe();
+        await toggleTranscriptPanelBySwipe(verticalDistance);
         return;
     }
 
@@ -382,7 +382,14 @@ function clearSingleClickActionTimer() {
 }
 
 function scrollToSlideStageTop() {
-    elements.slideStage?.scrollIntoView({behavior: 'auto', block: 'start'});
+    const top = window.scrollY + elements.showtimeStrip.getBoundingClientRect().top;
+    window.scrollTo({top, left: 0, behavior: 'auto'});
+    centerSlideStageHorizontally();
+}
+
+function centerSlideStageHorizontally() {
+    const horizontalOverflow = elements.slideStage.scrollWidth - elements.slideStage.clientWidth;
+    elements.slideStage.scrollLeft = Math.max(0, horizontalOverflow / 2);
 }
 
 function clearSlideAdvanceTimer() {
@@ -396,6 +403,10 @@ function clearShowtimeCountdown() {
     if (showtimeCountdownInterval) {
         window.clearInterval(showtimeCountdownInterval);
         showtimeCountdownInterval = null;
+    }
+    showtimeCountdownTotalSeconds = null;
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '0%';
     }
 }
 
@@ -452,14 +463,21 @@ function getSlideShowtimeSeconds(slide) {
 
 function renderShowtimeCountdown(value) {
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
+    renderShowtimeProgress(value);
 }
 
 function renderShowtimeDash() {
     renderLayoutShowtimeDash(elements.showtimeCountdown);
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '0%';
+    }
 }
 
 function renderSpeakingIndicator() {
     renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '100%';
+    }
 }
 
 function showSlideChangeCueIndicator() {
@@ -469,6 +487,9 @@ function showSlideChangeCueIndicator() {
     slideChangeCueIndicatorToken += 1;
     elements.showtimeCountdown.textContent = '🔔';
     elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '100%';
+    }
     return slideChangeCueIndicatorToken;
 }
 
@@ -494,6 +515,7 @@ function startShowtimeCountdown(slide, options = {}) {
     }
 
     nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
+    showtimeCountdownTotalSeconds = nonAudioPlaybackRemainingSeconds;
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -508,6 +530,15 @@ function startShowtimeCountdown(slide, options = {}) {
     }, 1000);
 }
 
+function renderShowtimeProgress(remainingSeconds) {
+    if (!elements.showtimeProgress || !Number.isFinite(showtimeCountdownTotalSeconds) || showtimeCountdownTotalSeconds <= 0) {
+        return;
+    }
+    const elapsed = Math.max(0, showtimeCountdownTotalSeconds - remainingSeconds);
+    const progress = Math.max(0, Math.min(100, (elapsed / showtimeCountdownTotalSeconds) * 100));
+    elements.showtimeProgress.style.width = `${progress}%`;
+}
+
 function updateSlideAudioStatus(slide) {
     const showtime = getSlideShowtimeSeconds(slide);
     if (slide?.audio) {
@@ -517,46 +548,34 @@ function updateSlideAudioStatus(slide) {
     elements.audioStatus.textContent = `Kein Audio – Anzeige ${showtime} s`;
 }
 
-function scheduleAutoAdvanceForShowtime(slide) {
-    clearSlideAdvanceTimer();
-
-    const showtime = getSlideShowtimeSeconds(slide);
-    if (!state.autoAdvance) {
-        updateSlideAudioStatus(slide);
-        return false;
-    }
-
-    updateSlideAudioStatus(slide);
-    slideAdvanceTimer = window.setTimeout(async () => {
-        slideAdvanceTimer = null;
-        if (!state.autoAdvance || !state.deck) {
-            return;
-        }
-        await handleSlidePlaybackCompleted();
-    }, showtime * 1000);
-
-    return true;
-}
-
 function syncAutoSlideChangeForCurrentSlide() {
     const slide = state.deck?.slides[state.currentIndex];
-    if (!slide || slide.audio) {
-        nonAudioPlaybackRemainingSeconds = null;
-        clearSlideAdvanceTimer();
-        clearShowtimeCountdown();
-        setPlayButtonActive(false);
-        return;
-    }
+    syncAutoSlideChangeForCurrentSlideInPlayer({
+        slide,
+        autoAdvance: state.autoAdvance,
+        setNonAudioPlaybackRemainingSeconds(value) {
+            nonAudioPlaybackRemainingSeconds = value;
+        },
+        clearSlideAdvanceTimer,
+        clearShowtimeCountdown,
+        setPlayButtonActive,
+        startShowtimeCountdown,
+        scheduleAutoAdvanceForShowtime,
+    });
+}
 
-    if (!state.autoAdvance) {
-        clearSlideAdvanceTimer();
-        setPlayButtonActive(false);
-        return;
-    }
-
-    setPlayButtonActive(true);
-    startShowtimeCountdown(slide);
-    scheduleAutoAdvanceForShowtime(slide);
+function scheduleAutoAdvanceForShowtime(slide) {
+    return scheduleAutoAdvanceForShowtimeInPlayer({
+        slide,
+        autoAdvance: () => state.autoAdvance && Boolean(state.deck),
+        clearSlideAdvanceTimer,
+        updateSlideAudioStatus,
+        getSlideShowtimeSeconds,
+        setSlideAdvanceTimer(timerId) {
+            slideAdvanceTimer = timerId;
+        },
+        onPlaybackCompleted: handleSlidePlaybackCompleted,
+    });
 }
 
 async function handleSlidePlaybackCompleted() {
@@ -756,7 +775,8 @@ async function renderCurrentSlide() {
     setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
-        elements.slideStage.innerHTML = `<div class="placeholder"><h2>Keine Folie gewählt</h2></div>`;
+        elements.slideContent.innerHTML = '';
+        centerSlideStageHorizontally();
         if (elements.showtimeCountdown) {
             renderShowtimeDash();
         }
@@ -773,11 +793,12 @@ async function renderCurrentSlide() {
     };
 
     const html = renderSlideContent(slide, assetResolver);
-    elements.slideStage.innerHTML = `
+    elements.slideContent.innerHTML = `
     <article class="slide-card" data-slide-id="${escapeHtml(slide.id || '')}">
       ${html}
     </article>
   `;
+    centerSlideStageHorizontally();
 
     await hydrateAsyncAssets();
 
@@ -920,6 +941,16 @@ async function resumePresentation() {
     await audioController.resume();
 }
 
+async function stopPresentation() {
+    clearSlideAdvanceTimer();
+    clearShowtimeCountdown();
+    nonAudioPlaybackRemainingSeconds = null;
+    pausedNonAudioRemainingSeconds = null;
+    hasPresentationStarted = false;
+    setPlayButtonActive(false);
+    await audioController.stop();
+}
+
 async function showTranscriptPanelBySwipe() {
     if (isTranscriptPanelOpen()) {
         return;
@@ -931,7 +962,19 @@ async function hideTranscriptPanelBySwipe() {
     if (!isTranscriptPanelOpen()) {
         return;
     }
+    transcriptRenderToken += 1;
     setTranscriptPanelVisibility(false);
+}
+
+async function toggleTranscriptPanelBySwipe(verticalDistance) {
+    if (verticalDistance <= 0) {
+        return;
+    }
+    if (isTranscriptPanelOpen()) {
+        await hideTranscriptPanelBySwipe();
+        return;
+    }
+    await showTranscriptPanelBySwipe();
 }
 
 function renderSlideList() {
@@ -965,9 +1008,10 @@ function refreshUi() {
     elements.deckTitle.textContent = state.deck?.title ?? '–';
     elements.sourceKind.textContent = state.sourceKind ?? '–';
     elements.slideCounter.textContent = slideCount > 0 ? `${state.currentIndex + 1} / ${slideCount}` : '0 / 0';
-    elements.gotoInput.max = String(Math.max(slideCount, 1));
-    elements.gotoInput.value = slideCount > 0 ? String(state.currentIndex + 1) : '1';
     elements.autoplayNextCheckbox.checked = state.autoAdvance;
+    elements.slideStage.classList.toggle('hidden', slideCount < 1);
+    elements.showtimeProgressTrack.classList.toggle('hidden', slideCount < 1);
+    elements.slideListPanel.classList.toggle('hidden', slideCount < 1);
 
     const disabled = !state.deck || isSlideTransitionInProgress;
     for (const button of [
@@ -978,12 +1022,9 @@ function refreshUi() {
         elements.stopBtn,
         elements.nextBtn,
         elements.lastBtn,
-        elements.gotoBtn,
     ]) {
         button.disabled = disabled;
     }
-
-    elements.gotoInput.disabled = disabled;
     elements.transcriptToggleBtn.disabled = disabled || !hasSlideAudioSource(currentSlide);
 }
 
@@ -1003,10 +1044,11 @@ async function toggleTranscriptPanel() {
 
 function setTranscriptPanelVisibility(isVisible) {
     elements.transcriptPanel.classList.toggle('hidden', !isVisible);
+    elements.slideContent.classList.toggle('hidden', isVisible);
     updateTranscriptToggleButton(elements.transcriptToggleBtn, isVisible);
 }
-
 function hideTranscriptPanel() {
+    transcriptRenderToken += 1;
     setTranscriptPanelVisibility(false);
     clearTranscriptPanelContent();
     scrollToSlideStageTop();
@@ -1028,6 +1070,7 @@ function isTranscriptPanelOpen() {
 }
 
 async function renderTranscriptContent({keepOpen = false} = {}) {
+    const renderToken = ++transcriptRenderToken;
     const slide = state.deck?.slides[state.currentIndex];
     clearTranscriptPanelContent();
 
@@ -1038,24 +1081,13 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     }
 
     const audioType = inferAudioType(slide.audio);
-    elements.transcriptAudioPlayer.classList.remove('hidden');
-
-    try {
-        const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
-        elements.transcriptAudioPlayer.src = resolvedSource;
-        const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
-        elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
-        if (!playableInBrowser) {
-            elements.transcriptAudioPlayer.pause();
-        }
-    } catch (error) {
-        elements.transcriptAudioPlayer.classList.add('is-disabled');
-        elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
-    }
 
     if (isTextAudioType(audioType)) {
         try {
             const textContent = await state.deck.assetLoader.loadText(slide.audio.src);
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
             elements.transcriptText.textContent = audioType === 'ssml'
                 ? ssmlToDisplayText(textContent)
                 : preserveStructuredText(textContent);
@@ -1064,6 +1096,9 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
                 elements.transcriptHint.textContent = 'Text aus der in slides.json referenzierten Audio-Datei.';
             }
         } catch (error) {
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
             elements.transcriptHint.textContent = 'Der Text zur Audio-Datei konnte nicht geladen werden.';
         }
         setTranscriptPanelVisibility(keepOpen);
@@ -1071,6 +1106,25 @@ async function renderTranscriptContent({keepOpen = false} = {}) {
     }
 
     if (isPlayableAudioType(audioType, slide.audio.src)) {
+        elements.transcriptAudioPlayer.classList.remove('hidden');
+        try {
+            const resolvedSource = await state.deck.assetLoader.resolvePlayableUrl(slide.audio.src);
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
+            elements.transcriptAudioPlayer.src = resolvedSource;
+            const playableInBrowser = canPlayInAudioElement(elements.transcriptAudioPlayer, audioType, slide.audio.src);
+            elements.transcriptAudioPlayer.classList.toggle('is-disabled', !playableInBrowser);
+            if (!playableInBrowser) {
+                elements.transcriptAudioPlayer.pause();
+            }
+        } catch (error) {
+            if (renderToken !== transcriptRenderToken) {
+                return;
+            }
+            elements.transcriptAudioPlayer.classList.add('is-disabled');
+            elements.transcriptHint.textContent = 'Die Audioquelle konnte nicht in den Player geladen werden.';
+        }
         if (!elements.transcriptHint.textContent) {
             elements.transcriptHint.textContent = 'Für diese Folie liegt eine Audio-Datei vor. Du kannst im Player navigieren.';
         }
