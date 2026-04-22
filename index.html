@@ -19,8 +19,6 @@
     <div class="app-shell">
       <main class="stage">
       <h1>Slideshow Viewer</h1>
-        <div id="error-box" class="error-box hidden" role="alert"></div>
-
         <div class="showtime-strip">
           <button
             id="transcript-toggle-btn"
@@ -33,11 +31,21 @@
             data-icon="eye"
           >
           </button>
-          <output id="showtime-countdown" class="showtime-countdown is-safe" aria-live="polite">–</output>
+          <button
+            id="showtime-countdown"
+            class="showtime-countdown is-safe"
+            type="button"
+            title="Keine Fehlermeldung vorhanden"
+            aria-label="Keine Fehlermeldung vorhanden"
+            aria-expanded="false"
+            aria-pressed="false"
+            aria-live="polite"
+          ></button>
           <div id="showtime-progress-track" class="toolbar-progress hidden" aria-hidden="true">
             <span id="showtime-progress" class="showtime-progress"></span>
           </div>
         </div>
+        <div id="error-box" class="error-box hidden" role="alert"></div>
 
         <article id="slide-stage" class="slide-stage hidden">
           <div id="slide-content" class="slide-content"></div>

@@ -174,6 +174,7 @@ button:disabled {
     display: block;
 }
 
+
 .toolbar-group--primary {
     gap: 10px;
     flex-wrap: nowrap;
@@ -202,6 +203,23 @@ button:disabled {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+
+.showtime-countdown {
+    cursor: default;
+}
+
+.showtime-countdown:disabled {
+    opacity: 1;
+}
+
+.showtime-countdown.is-error {
+    cursor: pointer;
+}
+
+.showtime-countdown.is-error.is-active {
+    border-color: rgba(255, 179, 71, 0.7);
+    box-shadow: 0 0 0 2px rgba(255, 179, 71, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
 .showtime-countdown.is-safe {
     color: #6ee7a8;
 }
@@ -214,6 +232,10 @@ button:disabled {
     color: #6cc0ff;
 }
 
+.showtime-countdown.is-error {
+    color: #ffb347;
+}
+
 .showtime-countdown.is-speaking svg {
     width: 1.15em;
     height: 1.15em;
@@ -221,12 +243,25 @@ button:disabled {
     vertical-align: middle;
 }
 
-.showtime-countdown.is-speaking svg path {
+.showtime-countdown.is-speaking svg path,
+.showtime-countdown.is-error svg path {
     fill: currentColor;
 }
 
 .showtime-countdown.is-speaking svg path.speak {
     fill: #f59e0b;
+}
+
+.showtime-countdown.is-error svg {
+    width: 1.45em;
+    height: 1.45em;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.showtime-countdown.is-error svg circle {
+    fill: #13161a;
+    stroke: none;
 }
 
 input[type="url"],
@@ -301,6 +336,8 @@ input[type="url"] {
 }
 
 .error-box {
+    width: min(1200px, 100%);
+    margin: 0 auto;
     margin-top: 14px;
     padding: 10px 12px;
     border-radius: 12px;

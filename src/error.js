@@ -8,11 +8,17 @@ export function hideError(errorBox) {
     errorBox.textContent = '';
 }
 
-export async function withErrorHandling(errorBox, fn) {
+export async function withErrorHandling(errorBox, fn, options = {}) {
+    const {onError} = options;
     try {
         hideError(errorBox);
         await fn();
     } catch (error) {
-        showError(errorBox, error instanceof Error ? error.message : String(error));
+        const message = error instanceof Error ? error.message : String(error);
+        if (typeof onError === 'function') {
+            onError(message);
+            return;
+        }
+        showError(errorBox, message);
     }
 }
