@@ -281,12 +281,14 @@ async function handleTouchEnd(event) {
 
     if (isHorizontalSwipe) {
         if (horizontalDistance > 0) {
-            await goToSlide(state.currentIndex - 1);
+            await goToSlide(state.currentIndex + 1);
             return;
         }
 
-        await goToSlide(state.currentIndex + 1);
-        return;
+        if (horizontalDistance < 0) {
+            await goToSlide(state.currentIndex - 1);
+            return;
+        }
     }
 
     if (isVerticalSwipe) {
