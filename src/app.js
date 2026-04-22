@@ -28,9 +28,9 @@ import {initializeIcons, setIcon} from './icons.js';
 import {
     collectLayoutElements,
     registerLayoutLifecycleHooks,
+    updateErrorToggleButton,
     renderShowtimeCountdown as renderLayoutShowtimeCountdown,
     renderShowtimeDash as renderLayoutShowtimeDash,
-    renderShowtimeErrorIndicator as renderLayoutShowtimeErrorIndicator,
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
@@ -67,6 +67,8 @@ let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
 let transcriptRenderToken = 0;
 let showtimeCountdownTotalSeconds = null;
+let currentErrorMessage = '';
+let isErrorExpanded = false;
 
 await initApp();
 
@@ -108,10 +110,12 @@ function createAudioController() {
 }
 
 async function withUiErrorHandling(fn) {
-    await withErrorHandling(elements.errorBox, fn);
-    if (!elements.errorBox.classList.contains('hidden')) {
-        renderShowtimeErrorIndicator();
-    }
+    clearApplicationError();
+    await withErrorHandling(elements.errorBox, fn, {
+        onError(message) {
+            showApplicationError(message);
+        },
+    });
 }
 
 function registerLifecycleHooks() {
@@ -201,6 +205,10 @@ function bindEvents() {
             elements.autoplayNextCheckbox.checked = previousAutoAdvance;
             syncAutoSlideChangeForCurrentSlide();
         }
+    });
+    elements.errorToggleBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        toggleErrorMessageVisibility();
     });
 
     document.addEventListener('keydown', async (event) => {
@@ -472,20 +480,11 @@ function getSlideShowtimeSeconds(slide) {
 }
 
 function renderShowtimeCountdown(value) {
-    if (isErrorVisible()) {
-        renderShowtimeErrorIndicator();
-        renderShowtimeProgress(value);
-        return;
-    }
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
     renderShowtimeProgress(value);
 }
 
 function renderShowtimeDash() {
-    if (isErrorVisible()) {
-        renderShowtimeErrorIndicator();
-        return;
-    }
     renderLayoutShowtimeDash(elements.showtimeCountdown);
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
@@ -493,24 +492,41 @@ function renderShowtimeDash() {
 }
 
 function renderSpeakingIndicator() {
-    if (isErrorVisible()) {
-        renderShowtimeErrorIndicator();
-        return;
-    }
     renderLayoutSpeakingIndicator(elements.showtimeCountdown);
 }
 
-function renderShowtimeErrorIndicator() {
-    renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
-}
-
 function showApplicationError(message) {
-    showError(elements.errorBox, message);
-    renderShowtimeErrorIndicator();
+    currentErrorMessage = String(message ?? '').trim();
+    isErrorExpanded = false;
+    hideError(elements.errorBox);
+    updateErrorToggleButtonState();
 }
 
-function isErrorVisible() {
-    return elements.errorBox && !elements.errorBox.classList.contains('hidden');
+function clearApplicationError() {
+    currentErrorMessage = '';
+    isErrorExpanded = false;
+    hideError(elements.errorBox);
+    updateErrorToggleButtonState();
+}
+
+function toggleErrorMessageVisibility() {
+    if (!currentErrorMessage) {
+        return;
+    }
+    isErrorExpanded = !isErrorExpanded;
+    if (isErrorExpanded) {
+        showError(elements.errorBox, currentErrorMessage);
+    } else {
+        hideError(elements.errorBox);
+    }
+    updateErrorToggleButtonState();
+}
+
+function updateErrorToggleButtonState() {
+    updateErrorToggleButton(elements.errorToggleBtn, {
+        hasError: Boolean(currentErrorMessage),
+        isExpanded: isErrorExpanded,
+    });
 }
 
 function showSlideChangeCueIndicator() {
