@@ -480,13 +480,17 @@ function getSlideShowtimeSeconds(slide) {
 }
 
 function renderShowtimeCountdown(value) {
-    renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
+    if (currentErrorMessage && !isSlideChangeCueIndicatorVisible()) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else {
+        renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
+    }
     renderShowtimeProgress(value);
     updateShowtimeErrorToggleState();
 }
 
 function renderShowtimeDash() {
-    if (currentErrorMessage && nonAudioPlaybackRemainingSeconds === null && !isSlideChangeCueIndicatorVisible()) {
+    if (currentErrorMessage && !isSlideChangeCueIndicatorVisible()) {
         renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
     } else {
         renderLayoutShowtimeDash(elements.showtimeCountdown);
@@ -558,7 +562,7 @@ function updateShowtimeIndicatorState() {
         return;
     }
 
-    if (currentErrorMessage && nonAudioPlaybackRemainingSeconds === null) {
+    if (currentErrorMessage) {
         renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
     } else if (elements.audioStatus.textContent.startsWith('Spielt')) {
         renderLayoutSpeakingIndicator(elements.showtimeCountdown);
