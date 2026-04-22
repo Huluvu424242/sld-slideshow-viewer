@@ -24,7 +24,7 @@ import {
     startSwipeTracking,
     updateSwipeTracking,
 } from './swipe.js';
-import {initializeIcons} from './icons.js';
+import {initializeIcons, setIcon} from './icons.js';
 import {
     collectLayoutElements,
     registerLayoutLifecycleHooks,
@@ -522,7 +522,7 @@ function showSlideChangeCueIndicator() {
         return 0;
     }
     slideChangeCueIndicatorToken += 1;
-    elements.showtimeCountdown.textContent = '🔔';
+    setIcon(elements.showtimeCountdown, 'glocke');
     elements.showtimeCountdown.classList.remove('is-danger', 'is-safe', 'is-speaking', 'is-error');
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '100%';

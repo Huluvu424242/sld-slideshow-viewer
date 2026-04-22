@@ -53,6 +53,7 @@ export function renderShowtimeCountdown(element, value) {
     }
 
     const safeValue = Math.max(0, Math.floor(value));
+    delete element.dataset.icon;
     element.textContent = String(safeValue);
     element.classList.remove('is-speaking', 'is-error');
     element.classList.toggle('is-safe', safeValue > 3);
@@ -64,6 +65,7 @@ export function renderShowtimeDash(element) {
         return;
     }
 
+    delete element.dataset.icon;
     element.textContent = '';
     element.classList.remove('is-danger', 'is-safe', 'is-speaking', 'is-error');
 }
