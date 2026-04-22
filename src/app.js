@@ -67,6 +67,8 @@ let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
 let transcriptRenderToken = 0;
 let showtimeCountdownTotalSeconds = null;
+let showtimeProgressRemainingSeconds = null;
+let showtimeProgressOnlyMode = false;
 
 await initApp();
 
@@ -85,11 +87,11 @@ function createAudioController() {
             const currentSlide = state.deck?.slides[state.currentIndex];
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
+                if (currentSlide?.audio && !showtimeCountdownInterval) {
+                    startShowtimeProgressOnly(currentSlide);
+                }
             } else if (status === 'Pausiert' && hasSlideAudioSource(currentSlide) && nonAudioPlaybackRemainingSeconds === null) {
                 renderShowtimeDash();
-                if (elements.showtimeProgress) {
-                    elements.showtimeProgress.style.width = '100%';
-                }
             } else if (!showtimeCountdownInterval) {
                 renderShowtimeDash();
             }
@@ -415,6 +417,8 @@ function clearShowtimeCountdown() {
         showtimeCountdownInterval = null;
     }
     showtimeCountdownTotalSeconds = null;
+    showtimeProgressRemainingSeconds = null;
+    showtimeProgressOnlyMode = false;
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
     }
@@ -474,6 +478,7 @@ function getSlideShowtimeSeconds(slide) {
 function renderShowtimeCountdown(value) {
     if (isErrorVisible()) {
         renderShowtimeErrorIndicator();
+        renderShowtimeProgress(value);
         return;
     }
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
@@ -497,16 +502,10 @@ function renderSpeakingIndicator() {
         return;
     }
     renderLayoutSpeakingIndicator(elements.showtimeCountdown);
-    if (elements.showtimeProgress) {
-        elements.showtimeProgress.style.width = '100%';
-    }
 }
 
 function renderShowtimeErrorIndicator() {
     renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
-    if (elements.showtimeProgress) {
-        elements.showtimeProgress.style.width = '100%';
-    }
 }
 
 function showApplicationError(message) {
@@ -554,6 +553,8 @@ function startShowtimeCountdown(slide, options = {}) {
 
     nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
     showtimeCountdownTotalSeconds = nonAudioPlaybackRemainingSeconds;
+    showtimeProgressRemainingSeconds = nonAudioPlaybackRemainingSeconds;
+    showtimeProgressOnlyMode = false;
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -564,6 +565,26 @@ function startShowtimeCountdown(slide, options = {}) {
         if (nonAudioPlaybackRemainingSeconds <= 0) {
             clearShowtimeCountdown();
             setPlayButtonActive(false);
+        }
+    }, 1000);
+}
+
+function startShowtimeProgressOnly(slide) {
+    clearShowtimeCountdown();
+    const seconds = getSlideShowtimeSeconds(slide);
+    showtimeCountdownTotalSeconds = seconds;
+    showtimeProgressRemainingSeconds = seconds;
+    showtimeProgressOnlyMode = true;
+    renderShowtimeProgress(showtimeProgressRemainingSeconds);
+    showtimeCountdownInterval = window.setInterval(() => {
+        if (!showtimeProgressOnlyMode || showtimeProgressRemainingSeconds === null) {
+            return;
+        }
+        showtimeProgressRemainingSeconds = Math.max(0, showtimeProgressRemainingSeconds - 1);
+        renderShowtimeProgress(showtimeProgressRemainingSeconds);
+        if (showtimeProgressRemainingSeconds <= 0) {
+            window.clearInterval(showtimeCountdownInterval);
+            showtimeCountdownInterval = null;
         }
     }, 1000);
 }
