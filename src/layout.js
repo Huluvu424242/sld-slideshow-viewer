@@ -54,7 +54,7 @@ export function renderShowtimeCountdown(element, value) {
 
     const safeValue = Math.max(0, Math.floor(value));
     element.textContent = '';
-    element.classList.remove('is-speaking');
+    element.classList.remove('is-speaking', 'is-error');
     element.classList.toggle('is-safe', safeValue > 3);
     element.classList.toggle('is-danger', safeValue <= 3);
 }
@@ -65,7 +65,7 @@ export function renderShowtimeDash(element) {
     }
 
     element.textContent = '';
-    element.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    element.classList.remove('is-danger', 'is-safe', 'is-speaking', 'is-error');
 }
 
 export function renderSpeakingIndicator(element) {
@@ -74,8 +74,18 @@ export function renderSpeakingIndicator(element) {
     }
 
     setIcon(element, 'speaking_head');
-    element.classList.remove('is-danger', 'is-safe');
+    element.classList.remove('is-danger', 'is-safe', 'is-error');
     element.classList.add('is-speaking');
+}
+
+export function renderShowtimeErrorIndicator(element) {
+    if (!element) {
+        return;
+    }
+
+    setIcon(element, 'error_info');
+    element.classList.remove('is-danger', 'is-safe', 'is-speaking');
+    element.classList.add('is-error');
 }
 
 export function updateTranscriptToggleButton(button, isVisible) {

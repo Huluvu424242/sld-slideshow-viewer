@@ -148,6 +148,19 @@ export const ICONS = Object.freeze({
     </svg>
   `,
     /*
+     * Icon: error_info
+     * Autor: Huluvu424242
+     * Lizenz: MIT
+     * Quelle: selbst erstellt
+     */
+    error_info: `
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3.8L21 19.5H3L12 3.8z" />
+        <path d="M12 9v5.1" />
+        <circle cx="12" cy="16.9" r="0.75" />
+    </svg>
+  `,
+    /*
      * Icon: speaking_head
      * Autor: Twitter
      * Lizenz: MIT

@@ -214,6 +214,10 @@ button:disabled {
     color: #6cc0ff;
 }
 
+.showtime-countdown.is-error {
+    color: #ffb347;
+}
+
 .showtime-countdown.is-speaking svg {
     width: 1.15em;
     height: 1.15em;
@@ -221,12 +225,25 @@ button:disabled {
     vertical-align: middle;
 }
 
-.showtime-countdown.is-speaking svg path {
+.showtime-countdown.is-speaking svg path,
+.showtime-countdown.is-error svg path {
     fill: currentColor;
 }
 
 .showtime-countdown.is-speaking svg path.speak {
     fill: #f59e0b;
+}
+
+.showtime-countdown.is-error svg {
+    width: 1.1em;
+    height: 1.1em;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.showtime-countdown.is-error svg circle {
+    fill: #13161a;
+    stroke: none;
 }
 
 input[type="url"],
