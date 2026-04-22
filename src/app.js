@@ -28,10 +28,10 @@ import {initializeIcons, setIcon} from './icons.js';
 import {
     collectLayoutElements,
     registerLayoutLifecycleHooks,
-    updateErrorToggleButton,
     renderShowtimeCountdown as renderLayoutShowtimeCountdown,
     renderShowtimeDash as renderLayoutShowtimeDash,
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
+    renderShowtimeErrorIndicator as renderLayoutShowtimeErrorIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
 import {hideError, showError, withErrorHandling} from './error.js';
@@ -206,7 +206,7 @@ function bindEvents() {
             syncAutoSlideChangeForCurrentSlide();
         }
     });
-    elements.errorToggleBtn.addEventListener('click', (event) => {
+    elements.showtimeCountdown.addEventListener('click', (event) => {
         event.preventDefault();
         toggleErrorMessageVisibility();
     });
@@ -482,35 +482,46 @@ function getSlideShowtimeSeconds(slide) {
 function renderShowtimeCountdown(value) {
     renderLayoutShowtimeCountdown(elements.showtimeCountdown, value);
     renderShowtimeProgress(value);
+    updateShowtimeErrorToggleState();
 }
 
 function renderShowtimeDash() {
-    renderLayoutShowtimeDash(elements.showtimeCountdown);
+    if (currentErrorMessage && nonAudioPlaybackRemainingSeconds === null && !isSlideChangeCueIndicatorVisible()) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else {
+        renderLayoutShowtimeDash(elements.showtimeCountdown);
+    }
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
     }
+    updateShowtimeErrorToggleState();
 }
 
 function renderSpeakingIndicator() {
-    renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    if (currentErrorMessage && !isSlideChangeCueIndicatorVisible()) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else {
+        renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    }
+    updateShowtimeErrorToggleState();
 }
 
 function showApplicationError(message) {
     currentErrorMessage = String(message ?? '').trim();
     isErrorExpanded = false;
     hideError(elements.errorBox);
-    updateErrorToggleButtonState();
+    updateShowtimeIndicatorState();
 }
 
 function clearApplicationError() {
     currentErrorMessage = '';
     isErrorExpanded = false;
     hideError(elements.errorBox);
-    updateErrorToggleButtonState();
+    updateShowtimeIndicatorState();
 }
 
 function toggleErrorMessageVisibility() {
-    if (!currentErrorMessage) {
+    if (!currentErrorMessage || elements.showtimeCountdown.disabled) {
         return;
     }
     isErrorExpanded = !isErrorExpanded;
@@ -519,14 +530,50 @@ function toggleErrorMessageVisibility() {
     } else {
         hideError(elements.errorBox);
     }
-    updateErrorToggleButtonState();
+    updateShowtimeIndicatorState();
 }
 
-function updateErrorToggleButtonState() {
-    updateErrorToggleButton(elements.errorToggleBtn, {
-        hasError: Boolean(currentErrorMessage),
-        isExpanded: isErrorExpanded,
-    });
+function isSlideChangeCueIndicatorVisible() {
+    return elements.showtimeCountdown?.dataset.icon === 'glocke';
+}
+
+function updateShowtimeErrorToggleState() {
+    const hasError = Boolean(currentErrorMessage);
+    const isInteractive = hasError && elements.showtimeCountdown.classList.contains('is-error');
+    elements.showtimeCountdown.disabled = !isInteractive;
+    elements.showtimeCountdown.classList.toggle('is-active', hasError && isErrorExpanded && isInteractive);
+    elements.showtimeCountdown.setAttribute('aria-expanded', String(hasError && isErrorExpanded && isInteractive));
+    elements.showtimeCountdown.setAttribute('aria-pressed', String(hasError && isErrorExpanded && isInteractive));
+
+    const tooltipText = hasError
+        ? (isErrorExpanded ? 'Fehlermeldung ausblenden' : 'Fehlermeldung einblenden')
+        : 'Keine Fehlermeldung vorhanden';
+    elements.showtimeCountdown.title = tooltipText;
+    elements.showtimeCountdown.setAttribute('aria-label', tooltipText);
+}
+
+function updateShowtimeIndicatorState() {
+    if (isSlideChangeCueIndicatorVisible()) {
+        updateShowtimeErrorToggleState();
+        return;
+    }
+
+    if (currentErrorMessage && nonAudioPlaybackRemainingSeconds === null) {
+        renderLayoutShowtimeErrorIndicator(elements.showtimeCountdown);
+    } else if (elements.audioStatus.textContent.startsWith('Spielt')) {
+        renderLayoutSpeakingIndicator(elements.showtimeCountdown);
+    } else if (nonAudioPlaybackRemainingSeconds !== null) {
+        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
+        return;
+    } else {
+        renderShowtimeDash();
+        return;
+    }
+
+    if (elements.showtimeProgress) {
+        elements.showtimeProgress.style.width = '0%';
+    }
+    updateShowtimeErrorToggleState();
 }
 
 function showSlideChangeCueIndicator() {
@@ -539,6 +586,7 @@ function showSlideChangeCueIndicator() {
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '100%';
     }
+    updateShowtimeErrorToggleState();
     return slideChangeCueIndicatorToken;
 }
 
@@ -546,11 +594,7 @@ function restoreShowtimeCountdownAfterCue(token) {
     if (!elements.showtimeCountdown || token !== slideChangeCueIndicatorToken) {
         return;
     }
-    if (nonAudioPlaybackRemainingSeconds !== null) {
-        renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
-        return;
-    }
-    renderShowtimeDash();
+    updateShowtimeIndicatorState();
 }
 
 function startShowtimeCountdown(slide, options = {}) {
