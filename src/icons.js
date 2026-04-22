@@ -141,92 +141,92 @@ export const ICONS = Object.freeze({
      * Quelle: selbst erstellt
      */
     glocke: `
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
+    <svg xmlns="http://www.w3.org/2000/svg"
+        class="icno"
         viewBox="0 0 24 24"
         aria-hidden="true"
     >
-    <defs>
-        <!-- Hauptgold -->
-        <linearGradient id="g24" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#fff3a0"/>
-            <stop offset="40%" stop-color="#f7c21c"/>
-            <stop offset="75%" stop-color="#d08d00"/>
-            <stop offset="100%" stop-color="#8c5300"/>
-        </linearGradient>
-
-        <!-- Rand -->
-        <linearGradient id="rim24" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ffd54d"/>
-            <stop offset="100%" stop-color="#8c5300"/>
-        </linearGradient>
-
+        <defs>
+            <!-- Hauptgold -->
+            <linearGradient id="g24" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#fff3a0"/>
+                <stop offset="40%" stop-color="#f7c21c"/>
+                <stop offset="75%" stop-color="#d08d00"/>
+                <stop offset="100%" stop-color="#8c5300"/>
+            </linearGradient>
+    
+            <!-- Rand -->
+            <linearGradient id="rim24" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffd54d"/>
+                <stop offset="100%" stop-color="#8c5300"/>
+            </linearGradient>
+    
+            <!-- Klöppel -->
+            <radialGradient id="clapper24" cx="35%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#fff2a6"/>
+                <stop offset="60%" stop-color="#d28c00"/>
+                <stop offset="100%" stop-color="#8c5300"/>
+            </radialGradient>
+        </defs>
+    
+        <!-- Aufhängung -->
+        <path
+                d="M9 5a3 3 0 0 1 6 0v1h-2V5a1 1 0 0 0-2 0v1H9z"
+                fill="url(#g24)"
+                stroke="#8c5300"
+                stroke-width="0.8"
+                stroke-linejoin="round"
+        />
+    
+        <!-- Glocke -->
+        <path
+                d="M12 6
+           C16 6 18 9 18 13
+           C18 15 19 16 20 17
+           C20.5 17.5 20 18.5 19 18.5
+           H5
+           C4 18.5 3.5 17.5 4 17
+           C5 16 6 15 6 13
+           C6 9 8 6 12 6Z"
+                fill="url(#g24)"
+                stroke="#8c5300"
+                stroke-width="0.9"
+                stroke-linejoin="round"
+        />
+    
+        <!-- Glanz -->
+        <path
+                d="M8 9
+           C9 7.8 10.5 7.3 12 7.5
+           C10 9 9.5 11 9.5 13
+           C9.5 14 9.2 15 8.7 15.5
+           C7.5 14.5 7 13 7 11.5
+           C7 10.5 7.3 9.5 8 9Z"
+                fill="#fff8c0"
+                opacity="0.5"
+        />
+    
+        <!-- unterer Rand -->
+        <path
+                d="M5 18
+           C7 19 9 19.5 12 19.5
+           C15 19.5 17 19 19 18
+           C19.5 18.5 19 19.5 18 20
+           C16.5 20.5 14.5 21 12 21
+           C9.5 21 7.5 20.5 6 20
+           C5 19.5 4.5 18.5 5 18Z"
+                fill="url(#rim24)"
+        />
+    
         <!-- Klöppel -->
-        <radialGradient id="clapper24" cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stop-color="#fff2a6"/>
-            <stop offset="60%" stop-color="#d28c00"/>
-            <stop offset="100%" stop-color="#8c5300"/>
-        </radialGradient>
-    </defs>
-
-    <!-- Aufhängung -->
-    <path
-            d="M9 5a3 3 0 0 1 6 0v1h-2V5a1 1 0 0 0-2 0v1H9z"
-            fill="url(#g24)"
-            stroke="#8c5300"
-            stroke-width="0.8"
-            stroke-linejoin="round"
-    />
-
-    <!-- Glocke -->
-    <path
-            d="M12 6
-       C16 6 18 9 18 13
-       C18 15 19 16 20 17
-       C20.5 17.5 20 18.5 19 18.5
-       H5
-       C4 18.5 3.5 17.5 4 17
-       C5 16 6 15 6 13
-       C6 9 8 6 12 6Z"
-            fill="url(#g24)"
-            stroke="#8c5300"
-            stroke-width="0.9"
-            stroke-linejoin="round"
-    />
-
-    <!-- Glanz -->
-    <path
-            d="M8 9
-       C9 7.8 10.5 7.3 12 7.5
-       C10 9 9.5 11 9.5 13
-       C9.5 14 9.2 15 8.7 15.5
-       C7.5 14.5 7 13 7 11.5
-       C7 10.5 7.3 9.5 8 9Z"
-            fill="#fff8c0"
-            opacity="0.5"
-    />
-
-    <!-- unterer Rand -->
-    <path
-            d="M5 18
-       C7 19 9 19.5 12 19.5
-       C15 19.5 17 19 19 18
-       C19.5 18.5 19 19.5 18 20
-       C16.5 20.5 14.5 21 12 21
-       C9.5 21 7.5 20.5 6 20
-       C5 19.5 4.5 18.5 5 18Z"
-            fill="url(#rim24)"
-    />
-
-    <!-- Klöppel -->
-    <circle
-            cx="12"
-            cy="17"
-            r="1.8"
-            fill="url(#clapper24)"
-            stroke="#8c5300"
-            stroke-width="0.6"
-    />
+        <circle
+                cx="12"
+                cy="17"
+                r="1.8"
+                fill="url(#clapper24)"
+                stroke="#8c5300"
+                stroke-width="0.6"
+        />
     </svg>
   `,
     /*
@@ -238,246 +238,247 @@ export const ICONS = Object.freeze({
     glocke_128x128: `
     <svg
       xmlns="http://www.w3.org/2000/svg"
+      class="icon"
       viewBox="0 0 128 128"
       aria-hidden="true"
     >
-  <defs>
-    <linearGradient id="bellBody" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fff7b8"/>
-      <stop offset="12%" stop-color="#ffe45c"/>
-      <stop offset="38%" stop-color="#f7c51d"/>
-      <stop offset="68%" stop-color="#d99500"/>
-      <stop offset="100%" stop-color="#8c5300"/>
-    </linearGradient>
-
-    <linearGradient id="bellSideShade" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#fff7cf" stop-opacity="0.85"/>
-      <stop offset="28%" stop-color="#fff1a8" stop-opacity="0.45"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-
-    <linearGradient id="rimGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ffd54d"/>
-      <stop offset="55%" stop-color="#d79a00"/>
-      <stop offset="100%" stop-color="#8c5300"/>
-    </linearGradient>
-
-    <radialGradient id="innerBell" cx="50%" cy="30%" r="75%">
-      <stop offset="0%" stop-color="#8f5200"/>
-      <stop offset="60%" stop-color="#6e3d00"/>
-      <stop offset="100%" stop-color="#452300"/>
-    </radialGradient>
-
-    <radialGradient id="clapperGrad" cx="35%" cy="30%" r="70%">
-      <stop offset="0%" stop-color="#fff2a6"/>
-      <stop offset="20%" stop-color="#ffd84a"/>
-      <stop offset="70%" stop-color="#d28c00"/>
-      <stop offset="100%" stop-color="#8c5300"/>
-    </radialGradient>
-
-    <linearGradient id="loopGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ffe97a"/>
-      <stop offset="45%" stop-color="#e4ab08"/>
-      <stop offset="100%" stop-color="#8d5500"/>
-    </linearGradient>
-
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#6f4300" flood-opacity="0.35"/>
-    </filter>
-
-    <filter id="innerGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
-      <feOffset dx="0" dy="1" result="offsetBlur"/>
-      <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
-      <feColorMatrix in="innerShadow" type="matrix" values="
-        0 0 0 0 0.45
-        0 0 0 0 0.24
-        0 0 0 0 0.00
-        0 0 0 0.45 0" />
-    </filter>
-  </defs>
-
-  <!-- Aufhängung -->
-  <g filter="url(#softShadow)">
-    <path
-      d="M64 10
-         C56 10 50 16 50 24
-         v6
-         h10
-         v-6
-         c0-2.4 1.6-4 4-4
-         s4 1.6 4 4
-         v6
-         h10
-         v-6
-         c0-8-6-14-14-14z"
-      fill="url(#loopGrad)"
-      stroke="#9a5e00"
-      stroke-width="2"
-      stroke-linejoin="round"
-    />
-    <path
-      d="M57 16
-         C54 18 52.5 21 52.5 24.5"
-      fill="none"
-      stroke="#fff3a8"
-      stroke-width="3"
-      stroke-linecap="round"
-      opacity="0.65"
-    />
-  </g>
-
-  <!-- Glockenkörper -->
-  <g filter="url(#softShadow)">
-    <path
-      d="M64 22
-         C92 22 103 44 103 72
-         C103 88 110 98 118 106
-         C120.5 108.5 120 114 116 116
-         C111 118.5 103 119 64 119
-         C25 119 17 118.5 12 116
-         C8 114 7.5 108.5 10 106
-         C18 98 25 88 25 72
-         C25 44 36 22 64 22z"
-      fill="url(#bellBody)"
-      stroke="#9a5e00"
-      stroke-width="2.5"
-      stroke-linejoin="round"
-    />
-
-    <!-- linker heller Spiegelglanz -->
-    <path
-      d="M37 40
-         C42 31 50 28 58 30
-         C46 42 44 58 44 78
-         C44 86 42 92 39 97
-         C34 92 31 83 31 71
-         C31 58 33 48 37 40z"
-      fill="url(#bellSideShade)"
-      opacity="0.95"
-    />
-
-    <!-- oberer weicher Glanz -->
-    <ellipse
-      cx="56"
-      cy="39"
-      rx="24"
-      ry="11"
-      fill="#fff8c8"
-      opacity="0.28"
-      transform="rotate(-10 56 39)"
-    />
-
-    <!-- rechte dunklere Seite für 3D -->
-    <path
-      d="M82 29
-         C94 35 101 49 101 71
-         C101 88 107 98 114 105
-         C116 107 116 112 113 113.5
-         C107 116 95 116.5 76 117
-         C91 110 96 94 96 75
-         C96 57 92 41 82 29z"
-      fill="#8c5300"
-      opacity="0.18"
-    />
-  </g>
-
-  <!-- Unterer Rand -->
-  <g filter="url(#softShadow)">
-    <path
-      d="M21 91
-         C32 98 46 101 64 101
-         C82 101 96 98 107 91
-         C112 95 116 100 118 106
-         C119 109 118 113 114 115
-         C108 118 94 119 64 119
-         C34 119 20 118 14 115
-         C10 113 9 109 10 106
-         C12 100 16 95 21 91z"
-      fill="url(#rimGrad)"
-      stroke="#9a5e00"
-      stroke-width="2"
-      stroke-linejoin="round"
-    />
-
-    <!-- Glanzlinie am Rand -->
-    <path
-      d="M25 95
-         C40 99 50 100.5 64 100.5
-         C78 100.5 91 99 103 95"
-      fill="none"
-      stroke="#fff5b0"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      opacity="0.75"
-    />
-  </g>
-
-  <!-- Innenseite der Glocke -->
-  <ellipse
-    cx="64"
-    cy="104"
-    rx="45"
-    ry="12"
-    fill="url(#innerBell)"
-    opacity="0.95"
-  />
-
-  <!-- Klöppel-Aufhängung -->
-  <path
-    d="M64 83
-       C64 83 64 88 64 91"
-    fill="none"
-    stroke="#8a5200"
-    stroke-width="3"
-    stroke-linecap="round"
-  />
-
-  <!-- Klöppel -->
-  <g filter="url(#softShadow)">
-    <circle
-      cx="64"
-      cy="103"
-      r="11"
-      fill="url(#clapperGrad)"
-      stroke="#9a5e00"
-      stroke-width="2"
-    />
-    <ellipse
-      cx="60"
-      cy="99"
-      rx="3.2"
-      ry="4.6"
-      fill="#fff6c3"
-      opacity="0.7"
-    />
-  </g>
-
-  <!-- sanfte Schattierung Übergang Körper -> Rand -->
-  <path
-    d="M20 88
-       C34 94 47 96 64 96
-       C81 96 94 94 108 88
-       C105 92 103 95 103 98
-       C91 102 79 104 64 104
-       C49 104 37 102 25 98
-       C25 95 23 92 20 88z"
-    fill="#7a4700"
-    opacity="0.16"
-  />
-
-  <!-- feine Kontur unten -->
-  <path
-    d="M19 104
-       C28 111 43 114 64 114
-       C85 114 100 111 109 104"
-    fill="none"
-    stroke="#6f4300"
-    stroke-width="1.6"
-    stroke-linecap="round"
-    opacity="0.55"
-  />
-</svg>
+      <defs>
+        <linearGradient id="bellBody" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fff7b8"/>
+          <stop offset="12%" stop-color="#ffe45c"/>
+          <stop offset="38%" stop-color="#f7c51d"/>
+          <stop offset="68%" stop-color="#d99500"/>
+          <stop offset="100%" stop-color="#8c5300"/>
+        </linearGradient>
+    
+        <linearGradient id="bellSideShade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fff7cf" stop-opacity="0.85"/>
+          <stop offset="28%" stop-color="#fff1a8" stop-opacity="0.45"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+    
+        <linearGradient id="rimGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffd54d"/>
+          <stop offset="55%" stop-color="#d79a00"/>
+          <stop offset="100%" stop-color="#8c5300"/>
+        </linearGradient>
+    
+        <radialGradient id="innerBell" cx="50%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#8f5200"/>
+          <stop offset="60%" stop-color="#6e3d00"/>
+          <stop offset="100%" stop-color="#452300"/>
+        </radialGradient>
+    
+        <radialGradient id="clapperGrad" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fff2a6"/>
+          <stop offset="20%" stop-color="#ffd84a"/>
+          <stop offset="70%" stop-color="#d28c00"/>
+          <stop offset="100%" stop-color="#8c5300"/>
+        </radialGradient>
+    
+        <linearGradient id="loopGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffe97a"/>
+          <stop offset="45%" stop-color="#e4ab08"/>
+          <stop offset="100%" stop-color="#8d5500"/>
+        </linearGradient>
+    
+        <filter id="softShadow" x="-20%" y="-20%" width="140%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#6f4300" flood-opacity="0.35"/>
+        </filter>
+    
+        <filter id="innerGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+          <feOffset dx="0" dy="1" result="offsetBlur"/>
+          <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
+          <feColorMatrix in="innerShadow" type="matrix" values="
+            0 0 0 0 0.45
+            0 0 0 0 0.24
+            0 0 0 0 0.00
+            0 0 0 0.45 0" />
+        </filter>
+      </defs>
+    
+      <!-- Aufhängung -->
+      <g filter="url(#softShadow)">
+        <path
+          d="M64 10
+             C56 10 50 16 50 24
+             v6
+             h10
+             v-6
+             c0-2.4 1.6-4 4-4
+             s4 1.6 4 4
+             v6
+             h10
+             v-6
+             c0-8-6-14-14-14z"
+          fill="url(#loopGrad)"
+          stroke="#9a5e00"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M57 16
+             C54 18 52.5 21 52.5 24.5"
+          fill="none"
+          stroke="#fff3a8"
+          stroke-width="3"
+          stroke-linecap="round"
+          opacity="0.65"
+        />
+      </g>
+    
+      <!-- Glockenkörper -->
+      <g filter="url(#softShadow)">
+        <path
+          d="M64 22
+             C92 22 103 44 103 72
+             C103 88 110 98 118 106
+             C120.5 108.5 120 114 116 116
+             C111 118.5 103 119 64 119
+             C25 119 17 118.5 12 116
+             C8 114 7.5 108.5 10 106
+             C18 98 25 88 25 72
+             C25 44 36 22 64 22z"
+          fill="url(#bellBody)"
+          stroke="#9a5e00"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+        />
+    
+        <!-- linker heller Spiegelglanz -->
+        <path
+          d="M37 40
+             C42 31 50 28 58 30
+             C46 42 44 58 44 78
+             C44 86 42 92 39 97
+             C34 92 31 83 31 71
+             C31 58 33 48 37 40z"
+          fill="url(#bellSideShade)"
+          opacity="0.95"
+        />
+    
+        <!-- oberer weicher Glanz -->
+        <ellipse
+          cx="56"
+          cy="39"
+          rx="24"
+          ry="11"
+          fill="#fff8c8"
+          opacity="0.28"
+          transform="rotate(-10 56 39)"
+        />
+    
+        <!-- rechte dunklere Seite für 3D -->
+        <path
+          d="M82 29
+             C94 35 101 49 101 71
+             C101 88 107 98 114 105
+             C116 107 116 112 113 113.5
+             C107 116 95 116.5 76 117
+             C91 110 96 94 96 75
+             C96 57 92 41 82 29z"
+          fill="#8c5300"
+          opacity="0.18"
+        />
+      </g>
+    
+      <!-- Unterer Rand -->
+      <g filter="url(#softShadow)">
+        <path
+          d="M21 91
+             C32 98 46 101 64 101
+             C82 101 96 98 107 91
+             C112 95 116 100 118 106
+             C119 109 118 113 114 115
+             C108 118 94 119 64 119
+             C34 119 20 118 14 115
+             C10 113 9 109 10 106
+             C12 100 16 95 21 91z"
+          fill="url(#rimGrad)"
+          stroke="#9a5e00"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+    
+        <!-- Glanzlinie am Rand -->
+        <path
+          d="M25 95
+             C40 99 50 100.5 64 100.5
+             C78 100.5 91 99 103 95"
+          fill="none"
+          stroke="#fff5b0"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          opacity="0.75"
+        />
+      </g>
+    
+      <!-- Innenseite der Glocke -->
+      <ellipse
+        cx="64"
+        cy="104"
+        rx="45"
+        ry="12"
+        fill="url(#innerBell)"
+        opacity="0.95"
+      />
+    
+      <!-- Klöppel-Aufhängung -->
+      <path
+        d="M64 83
+           C64 83 64 88 64 91"
+        fill="none"
+        stroke="#8a5200"
+        stroke-width="3"
+        stroke-linecap="round"
+      />
+    
+      <!-- Klöppel -->
+      <g filter="url(#softShadow)">
+        <circle
+          cx="64"
+          cy="103"
+          r="11"
+          fill="url(#clapperGrad)"
+          stroke="#9a5e00"
+          stroke-width="2"
+        />
+        <ellipse
+          cx="60"
+          cy="99"
+          rx="3.2"
+          ry="4.6"
+          fill="#fff6c3"
+          opacity="0.7"
+        />
+      </g>
+    
+      <!-- sanfte Schattierung Übergang Körper -> Rand -->
+      <path
+        d="M20 88
+           C34 94 47 96 64 96
+           C81 96 94 94 108 88
+           C105 92 103 95 103 98
+           C91 102 79 104 64 104
+           C49 104 37 102 25 98
+           C25 95 23 92 20 88z"
+        fill="#7a4700"
+        opacity="0.16"
+      />
+    
+      <!-- feine Kontur unten -->
+      <path
+        d="M19 104
+           C28 111 43 114 64 114
+           C85 114 100 111 109 104"
+        fill="none"
+        stroke="#6f4300"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        opacity="0.55"
+      />
+    </svg>
   `,
     /*
      * Icon: help
