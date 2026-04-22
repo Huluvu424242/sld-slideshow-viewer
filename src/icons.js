@@ -497,10 +497,101 @@ export const ICONS = Object.freeze({
      * Quelle: selbst erstellt
      */
     error_info: `
-    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3.8L21 19.5H3L12 3.8z" />
-        <path d="M12 9v5.1" />
-        <circle cx="12" cy="16.9" r="0.75" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="triRed24" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ff7a7a"/>
+          <stop offset="55%" stop-color="#e02121"/>
+          <stop offset="100%" stop-color="#8f0000"/>
+        </linearGradient>
+    
+        <linearGradient id="triEdge24" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffd0d0"/>
+          <stop offset="100%" stop-color="#680000"/>
+        </linearGradient>
+    
+        <linearGradient id="boltYellow24" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fff59a"/>
+          <stop offset="45%" stop-color="#ffd400"/>
+          <stop offset="100%" stop-color="#d79a00"/>
+        </linearGradient>
+      </defs>
+    
+      <!-- Dreieck -->
+      <path
+        d="M12 3.2
+           L21 19
+           C21.3 19.5 21 20.2 20.2 20.2
+           H3.8
+           C3 20.2 2.7 19.5 3 19
+           Z"
+        fill="url(#triRed24)"
+        stroke="url(#triEdge24)"
+        stroke-width="1"
+        stroke-linejoin="round"
+      />
+    
+      <!-- Glanz -->
+      <path
+        d="M11.8 5.2
+           L5.5 17
+           H8
+           L13.2 7.4
+           C13.4 7 13.2 6.4 12.8 6
+           C12.5 5.8 12.2 5.5 11.8 5.2Z"
+        fill="#ffffff"
+        opacity="0.18"
+      />
+    
+      <!-- linker Blitz -->
+      <path
+        d="M8.2 10.2
+           L10.2 10.2
+           L9.1 12.2
+           L10.8 12.2
+           L8.8 15.2
+           L9.4 13.1
+           L7.8 13.1
+           Z"
+        fill="url(#boltYellow24)"
+        stroke="#9a6a00"
+        stroke-width="0.35"
+        stroke-linejoin="round"
+      />
+    
+      <!-- rechter Blitz -->
+      <path
+        d="M15.8 10.2
+           L13.8 10.2
+           L14.9 12.2
+           L13.2 12.2
+           L15.2 15.2
+           L14.6 13.1
+           L16.2 13.1
+           Z"
+        fill="url(#boltYellow24)"
+        stroke="#9a6a00"
+        stroke-width="0.35"
+        stroke-linejoin="round"
+      />
+    
+      <!-- X-Augen -->
+      <path
+        d="M9.3 8.3 L10.6 9.6 M10.6 8.3 L9.3 9.6"
+        stroke="#fff7f7"
+        stroke-width="1"
+        stroke-linecap="round"
+      />
+      <path
+        d="M13.4 8.3 L14.7 9.6 M14.7 8.3 L13.4 9.6"
+        stroke="#fff7f7"
+        stroke-width="1"
+        stroke-linecap="round"
+      />
     </svg>
   `,
     /*
