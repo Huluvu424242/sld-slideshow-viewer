@@ -34,7 +34,7 @@ import {
     renderSpeakingIndicator as renderLayoutSpeakingIndicator,
     updateTranscriptToggleButton,
 } from './layout.js';
-import {showError, withErrorHandling} from './error.js';
+import {hideError, showError, withErrorHandling} from './error.js';
 import {toggleHelpPanel} from './hilfe.js';
 import {
     bindAutoAdvanceToggle,
