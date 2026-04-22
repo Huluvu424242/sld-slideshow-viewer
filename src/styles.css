@@ -253,8 +253,8 @@ button:disabled {
 }
 
 .showtime-countdown.is-error svg {
-    width: 1.1em;
-    height: 1.1em;
+    width: 1.45em;
+    height: 1.45em;
     display: inline-block;
     vertical-align: middle;
 }
