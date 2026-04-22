@@ -67,8 +67,6 @@ let singleClickActionTimer = null;
 let lastTouchTapTimestamp = 0;
 let transcriptRenderToken = 0;
 let showtimeCountdownTotalSeconds = null;
-let showtimeProgressRemainingSeconds = null;
-let showtimeProgressOnlyMode = false;
 
 await initApp();
 
@@ -87,8 +85,8 @@ function createAudioController() {
             const currentSlide = state.deck?.slides[state.currentIndex];
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
-                if (currentSlide?.audio && !showtimeCountdownInterval) {
-                    startShowtimeProgressOnly(currentSlide);
+                if (currentSlide?.audio) {
+                    fillShowtimeProgress();
                 }
             } else if (status === 'Pausiert' && hasSlideAudioSource(currentSlide) && nonAudioPlaybackRemainingSeconds === null) {
                 renderShowtimeDash();
@@ -417,8 +415,6 @@ function clearShowtimeCountdown() {
         showtimeCountdownInterval = null;
     }
     showtimeCountdownTotalSeconds = null;
-    showtimeProgressRemainingSeconds = null;
-    showtimeProgressOnlyMode = false;
     if (elements.showtimeProgress) {
         elements.showtimeProgress.style.width = '0%';
     }
@@ -553,8 +549,6 @@ function startShowtimeCountdown(slide, options = {}) {
 
     nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
     showtimeCountdownTotalSeconds = nonAudioPlaybackRemainingSeconds;
-    showtimeProgressRemainingSeconds = nonAudioPlaybackRemainingSeconds;
-    showtimeProgressOnlyMode = false;
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -569,26 +563,6 @@ function startShowtimeCountdown(slide, options = {}) {
     }, 1000);
 }
 
-function startShowtimeProgressOnly(slide) {
-    clearShowtimeCountdown();
-    const seconds = getSlideShowtimeSeconds(slide);
-    showtimeCountdownTotalSeconds = seconds;
-    showtimeProgressRemainingSeconds = seconds;
-    showtimeProgressOnlyMode = true;
-    renderShowtimeProgress(showtimeProgressRemainingSeconds);
-    showtimeCountdownInterval = window.setInterval(() => {
-        if (!showtimeProgressOnlyMode || showtimeProgressRemainingSeconds === null) {
-            return;
-        }
-        showtimeProgressRemainingSeconds = Math.max(0, showtimeProgressRemainingSeconds - 1);
-        renderShowtimeProgress(showtimeProgressRemainingSeconds);
-        if (showtimeProgressRemainingSeconds <= 0) {
-            window.clearInterval(showtimeCountdownInterval);
-            showtimeCountdownInterval = null;
-        }
-    }, 1000);
-}
-
 function renderShowtimeProgress(remainingSeconds) {
     if (!elements.showtimeProgress || !Number.isFinite(showtimeCountdownTotalSeconds) || showtimeCountdownTotalSeconds <= 0) {
         return;
@@ -596,6 +570,13 @@ function renderShowtimeProgress(remainingSeconds) {
     const elapsed = Math.max(0, showtimeCountdownTotalSeconds - remainingSeconds);
     const progress = Math.max(0, Math.min(100, (elapsed / showtimeCountdownTotalSeconds) * 100));
     elements.showtimeProgress.style.width = `${progress}%`;
+}
+
+function fillShowtimeProgress() {
+    if (!elements.showtimeProgress) {
+        return;
+    }
+    elements.showtimeProgress.style.width = '100%';
 }
 
 function updateSlideAudioStatus(slide) {
