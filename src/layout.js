@@ -54,7 +54,8 @@ export function renderShowtimeCountdown(element, value) {
 
     const safeValue = Math.max(0, Math.floor(value));
     delete element.dataset.icon;
-    element.textContent = String(safeValue);
+    element.textContent = '';
+    element.setAttribute('aria-label', `Verbleibende Zeit: ${safeValue} Sekunden`);
     element.classList.remove('is-speaking', 'is-error');
     element.classList.toggle('is-safe', safeValue > 3);
     element.classList.toggle('is-danger', safeValue <= 3);

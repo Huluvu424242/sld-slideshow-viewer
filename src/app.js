@@ -87,7 +87,9 @@ function createAudioController() {
             const currentSlide = state.deck?.slides[state.currentIndex];
             if (status.startsWith('Spielt')) {
                 renderSpeakingIndicator();
-                if (currentSlide?.audio && !showtimeCountdownInterval) {
+                if (isPlayableAudioSlide(currentSlide)) {
+                    fillShowtimeProgress();
+                } else if (currentSlide?.audio && !showtimeCountdownInterval) {
                     startShowtimeProgressOnly(currentSlide);
                 }
             } else if (status === 'Pausiert' && hasSlideAudioSource(currentSlide) && nonAudioPlaybackRemainingSeconds === null) {
@@ -598,6 +600,13 @@ function renderShowtimeProgress(remainingSeconds) {
     elements.showtimeProgress.style.width = `${progress}%`;
 }
 
+function fillShowtimeProgress() {
+    if (!elements.showtimeProgress) {
+        return;
+    }
+    elements.showtimeProgress.style.width = '100%';
+}
+
 function updateSlideAudioStatus(slide) {
     const showtime = getSlideShowtimeSeconds(slide);
     if (slide?.audio) {
@@ -1090,6 +1099,14 @@ function refreshUi() {
 function hasSlideAudioSource(slide) {
     const source = slide?.audio?.src;
     return typeof source === 'string' && source.trim().length > 0;
+}
+
+function isPlayableAudioSlide(slide) {
+    if (!slide?.audio) {
+        return false;
+    }
+    const audioType = inferAudioType(slide.audio);
+    return isPlayableAudioType(audioType, slide.audio.src);
 }
 
 async function toggleTranscriptPanel() {
