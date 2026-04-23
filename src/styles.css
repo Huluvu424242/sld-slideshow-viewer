@@ -497,6 +497,26 @@ input[type="url"] {
 
 @media (min-width: 821px) {
     #player-toolbar {
+        order: 1;
+    }
+
+    #help-panel {
+        order: 2;
+    }
+
+    .showtime-strip {
+        order: 3;
+    }
+
+    #error-box {
+        order: 4;
+    }
+
+    #slide-stage {
+        order: 5;
+    }
+
+    #player-toolbar {
         flex-direction: row;
         flex-wrap: wrap;
         align-items: center;
