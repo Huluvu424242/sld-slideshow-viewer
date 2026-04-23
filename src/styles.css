@@ -494,6 +494,68 @@ input[type="url"] {
     }
 }
 
+
+@media (min-width: 821px) {
+    .stage > h1 {
+        order: 1;
+    }
+
+    .showtime-strip {
+        order: 2;
+    }
+
+    #error-box {
+        order: 3;
+    }
+
+    #player-toolbar {
+        order: 4;
+    }
+
+    #help-panel {
+        order: 5;
+    }
+
+    #slide-stage {
+        order: 6;
+    }
+
+    #slide-list-panel {
+        order: 7;
+    }
+
+    #source-panel {
+        order: 8;
+    }
+
+    #status-panel {
+        order: 9;
+    }
+
+    .project-intro {
+        order: 10;
+    }
+
+    #player-toolbar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #player-toolbar .toolbar-group--primary {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    #player-toolbar .toolbar-group--primary + .toolbar-group {
+        margin-left: auto;
+        flex: 0 1 auto;
+        white-space: nowrap;
+    }
+}
+
 @media (max-width: 820px) {
     .toolbar {
         flex-wrap: wrap;
