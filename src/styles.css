@@ -494,6 +494,20 @@ input[type="url"] {
     }
 }
 
+
+@media (min-width: 821px) {
+    .stage > h1 {
+        order: -2;
+    }
+
+    #player-toolbar {
+        order: -1;
+        position: sticky;
+        top: 10px;
+        z-index: 20;
+    }
+}
+
 @media (max-width: 820px) {
     .toolbar {
         flex-wrap: wrap;
