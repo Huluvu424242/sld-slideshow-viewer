@@ -496,15 +496,23 @@ input[type="url"] {
 
 
 @media (min-width: 821px) {
-    .stage > h1 {
-        order: -2;
+    #player-toolbar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
     }
 
-    #player-toolbar {
-        order: -1;
-        position: sticky;
-        top: 10px;
-        z-index: 20;
+    #player-toolbar .toolbar-group--primary {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    #player-toolbar .toolbar-group--primary + .toolbar-group {
+        margin-left: auto;
+        flex: 0 1 auto;
+        white-space: nowrap;
     }
 }
 
