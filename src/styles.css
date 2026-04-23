@@ -496,6 +496,46 @@ input[type="url"] {
 
 
 @media (min-width: 821px) {
+    .stage > h1 {
+        order: 1;
+    }
+
+    #player-toolbar {
+        order: 2;
+    }
+
+    #help-panel {
+        order: 3;
+    }
+
+    .showtime-strip {
+        order: 4;
+    }
+
+    #error-box {
+        order: 5;
+    }
+
+    #slide-stage {
+        order: 6;
+    }
+
+    #slide-list-panel {
+        order: 7;
+    }
+
+    #source-panel {
+        order: 8;
+    }
+
+    #status-panel {
+        order: 9;
+    }
+
+    .project-intro {
+        order: 10;
+    }
+
     #player-toolbar {
         flex-direction: row;
         flex-wrap: wrap;
