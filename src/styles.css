@@ -500,19 +500,19 @@ input[type="url"] {
         order: 1;
     }
 
-    #player-toolbar {
+    .showtime-strip {
         order: 2;
     }
 
-    #help-panel {
+    #error-box {
         order: 3;
     }
 
-    .showtime-strip {
+    #player-toolbar {
         order: 4;
     }
 
-    #error-box {
+    #help-panel {
         order: 5;
     }
 
@@ -534,26 +534,6 @@ input[type="url"] {
 
     .project-intro {
         order: 10;
-    }
-
-    #player-toolbar {
-        order: 1;
-    }
-
-    #help-panel {
-        order: 2;
-    }
-
-    .showtime-strip {
-        order: 3;
-    }
-
-    #error-box {
-        order: 4;
-    }
-
-    #slide-stage {
-        order: 5;
     }
 
     #player-toolbar {
