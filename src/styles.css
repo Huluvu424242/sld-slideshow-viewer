@@ -557,6 +557,17 @@ input[type="url"] {
 }
 
 @media (max-width: 820px) {
+    .stage {
+        padding: 10px 8px;
+        gap: 10px;
+    }
+
+    .showtime-strip,
+    .transcript-panel,
+    .error-box {
+        width: 100%;
+    }
+
     .toolbar {
         flex-wrap: wrap;
         justify-content: flex-start;
@@ -572,6 +583,25 @@ input[type="url"] {
         flex-wrap: nowrap;
         overflow-x: auto;
         padding-bottom: 2px;
+    }
+
+    .slide-stage {
+        padding: 6px;
+        border-radius: 14px;
+    }
+
+    .slide-card,
+    .placeholder {
+        min-height: 62vh;
+        border-radius: 16px;
+        padding: 4px;
+    }
+
+    .slide-card > svg:first-child:last-child {
+        width: 100%;
+        max-width: none;
+        height: auto;
+        display: block;
     }
 }
 
