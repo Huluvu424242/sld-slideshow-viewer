@@ -392,7 +392,7 @@ input[type="url"] {
     background: linear-gradient(180deg, #f6f8fb, #e9eef6);
     color: #111827;
     border-radius: 28px;
-    padding: 56px 64px;
+    padding: 10px 10px;
     box-shadow: var(--shadow);
 }
 
@@ -489,7 +489,7 @@ input[type="url"] {
 
 @media (max-width: 1100px) {
     .slide-card {
-        padding: 28px;
+        padding: 10px;
         min-height: auto;
     }
 }
