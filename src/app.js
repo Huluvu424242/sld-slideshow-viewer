@@ -72,6 +72,11 @@ let showtimeCountdownTotalSeconds = null;
 let currentErrorMessage = '';
 let isErrorExpanded = false;
 let isPausedByErrorToggle = false;
+let asyncAssetHydrationToken = 0;
+const spinnerState = {
+    transitionLock: false,
+    asyncAssetLoading: false,
+};
 
 await initApp();
 
@@ -467,7 +472,7 @@ function setPlayButtonActive(active) {
 function beginSlideTransitionLock() {
     transitionAbortRequested = false;
     isSlideTransitionInProgress = true;
-    setTransitionSpinnerVisible(true);
+    setTransitionSpinnerState('transitionLock', true);
     refreshUi();
     setSlideListNavigationDisabled(true);
     clearTransitionUnlockTimer();
@@ -482,7 +487,7 @@ function beginSlideTransitionLock() {
 
 function endSlideTransitionLock() {
     isSlideTransitionInProgress = false;
-    setTransitionSpinnerVisible(false);
+    setTransitionSpinnerState('transitionLock', false);
     clearTransitionUnlockTimer();
     refreshUi();
     setSlideListNavigationDisabled(false);
@@ -495,8 +500,13 @@ function clearTransitionUnlockTimer() {
     }
 }
 
-function setTransitionSpinnerVisible(visible) {
-    elements.slideTransitionSpinner?.classList.toggle('is-active', Boolean(visible));
+function setTransitionSpinnerState(reason, visible) {
+    if (!(reason in spinnerState)) {
+        return;
+    }
+    spinnerState[reason] = Boolean(visible);
+    const shouldShow = Object.values(spinnerState).some(Boolean);
+    elements.slideTransitionSpinner?.classList.toggle('is-active', shouldShow);
 }
 
 function setSlideListNavigationDisabled(disabled) {
@@ -972,6 +982,7 @@ async function renderCurrentSlide() {
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
     nonAudioPlaybackRemainingSeconds = null;
+    abortPendingAssetHydration();
     setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
@@ -1000,7 +1011,7 @@ async function renderCurrentSlide() {
   `;
     centerSlideStageHorizontally();
 
-    await hydrateAsyncAssets();
+    void hydrateAsyncAssets();
 
     if (!slide.audio) {
         updateSlideAudioStatus(slide);
@@ -1018,15 +1029,37 @@ async function renderCurrentSlide() {
     }
 }
 
+function abortPendingAssetHydration() {
+    asyncAssetHydrationToken += 1;
+    setTransitionSpinnerState('asyncAssetLoading', false);
+}
+
 async function hydrateAsyncAssets() {
+    const hydrationToken = ++asyncAssetHydrationToken;
     const images = [...elements.slideStage.querySelectorAll('img[src=""]')];
+    if (images.length === 0) {
+        setTransitionSpinnerState('asyncAssetLoading', false);
+        return;
+    }
+    setTransitionSpinnerState('asyncAssetLoading', true);
     for (const image of images) {
+        if (hydrationToken !== asyncAssetHydrationToken) {
+            return;
+        }
         const original = image.getAttribute('data-original-src');
         if (!original) {
             continue;
         }
-        image.src = await state.deck.assetLoader.resolvePlayableUrl(original);
+        try {
+            image.src = await state.deck.assetLoader.resolvePlayableUrl(original);
+        } catch (error) {
+            console.warn('Bild konnte nicht geladen werden.', error);
+        }
     }
+    if (hydrationToken !== asyncAssetHydrationToken) {
+        return;
+    }
+    setTransitionSpinnerState('asyncAssetLoading', false);
     centerSlideStageHorizontally();
 }
 
