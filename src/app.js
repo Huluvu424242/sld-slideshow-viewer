@@ -72,6 +72,13 @@ let showtimeCountdownTotalSeconds = null;
 let currentErrorMessage = '';
 let isErrorExpanded = false;
 let isPausedByErrorToggle = false;
+let asyncAssetHydrationToken = 0;
+const spinnerState = {
+    transitionLock: false,
+    asyncAssetLoading: false,
+    deckLoading: false,
+    slideRendering: false,
+};
 
 await initApp();
 
@@ -146,7 +153,7 @@ function cleanupApplication() {
 function bindEvents() {
     elements.pickDirectoryBtn.addEventListener('click', async () => {
         await withUiErrorHandling(async () => {
-            const deck = await loadDeckFromDirectory();
+            const deck = await withSpinner('deckLoading', async () => loadDeckFromDirectory(), {allowPaint: true});
             await setDeck(deck);
         });
     });
@@ -157,7 +164,7 @@ function bindEvents() {
             return;
         }
         await withUiErrorHandling(async () => {
-            const deck = await loadDeckFromZip(file);
+            const deck = await withSpinner('deckLoading', async () => loadDeckFromZip(file), {allowPaint: true});
             await setDeck(deck);
             event.target.value = '';
         });
@@ -169,7 +176,7 @@ function bindEvents() {
             if (!url) {
                 throw new Error('Bitte eine Remote-URL eingeben.');
             }
-            const deck = await loadDeckFromRemote(url);
+            const deck = await withSpinner('deckLoading', async () => loadDeckFromRemote(url), {allowPaint: true});
             await setDeck(deck);
         });
     });
@@ -467,7 +474,7 @@ function setPlayButtonActive(active) {
 function beginSlideTransitionLock() {
     transitionAbortRequested = false;
     isSlideTransitionInProgress = true;
-    setTransitionSpinnerVisible(true);
+    setTransitionSpinnerState('transitionLock', true);
     refreshUi();
     setSlideListNavigationDisabled(true);
     clearTransitionUnlockTimer();
@@ -482,7 +489,7 @@ function beginSlideTransitionLock() {
 
 function endSlideTransitionLock() {
     isSlideTransitionInProgress = false;
-    setTransitionSpinnerVisible(false);
+    setTransitionSpinnerState('transitionLock', false);
     clearTransitionUnlockTimer();
     refreshUi();
     setSlideListNavigationDisabled(false);
@@ -495,8 +502,31 @@ function clearTransitionUnlockTimer() {
     }
 }
 
-function setTransitionSpinnerVisible(visible) {
-    elements.slideTransitionSpinner?.classList.toggle('is-active', Boolean(visible));
+function setTransitionSpinnerState(reason, visible) {
+    if (!(reason in spinnerState)) {
+        return;
+    }
+    spinnerState[reason] = Boolean(visible);
+    const shouldShow = Object.values(spinnerState).some(Boolean);
+    elements.slideTransitionSpinner?.classList.toggle('is-active', shouldShow);
+}
+
+function nextAnimationFrame() {
+    return new Promise((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+    });
+}
+
+async function withSpinner(reason, task, {allowPaint = false} = {}) {
+    setTransitionSpinnerState(reason, true);
+    if (allowPaint) {
+        await nextAnimationFrame();
+    }
+    try {
+        return await task();
+    } finally {
+        setTransitionSpinnerState(reason, false);
+    }
 }
 
 function setSlideListNavigationDisabled(disabled) {
@@ -794,7 +824,7 @@ async function initializeFromQueryParameters() {
     elements.remoteUrlInput.value = remoteUrl;
 
     await withUiErrorHandling(async () => {
-        const deck = await loadDeckFromRemote(remoteUrl);
+        const deck = await withSpinner('deckLoading', async () => loadDeckFromRemote(remoteUrl), {allowPaint: true});
         await setDeck(deck);
     });
 }
@@ -972,6 +1002,7 @@ async function renderCurrentSlide() {
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
     nonAudioPlaybackRemainingSeconds = null;
+    abortPendingAssetHydration();
     setPlayButtonActive(false);
     const slide = state.deck?.slides[state.currentIndex];
     if (!slide) {
@@ -992,15 +1023,17 @@ async function renderCurrentSlide() {
         return resolved;
     };
 
-    const html = renderSlideContent(slide, assetResolver);
-    elements.slideContent.innerHTML = `
+    await withSpinner('slideRendering', async () => {
+        const html = renderSlideContent(slide, assetResolver);
+        elements.slideContent.innerHTML = `
     <article class="slide-card" data-slide-id="${escapeHtml(slide.id || '')}">
       ${html}
     </article>
   `;
-    centerSlideStageHorizontally();
+        centerSlideStageHorizontally();
+    }, {allowPaint: true});
 
-    await hydrateAsyncAssets();
+    void hydrateAsyncAssets();
 
     if (!slide.audio) {
         updateSlideAudioStatus(slide);
@@ -1018,15 +1051,37 @@ async function renderCurrentSlide() {
     }
 }
 
+function abortPendingAssetHydration() {
+    asyncAssetHydrationToken += 1;
+    setTransitionSpinnerState('asyncAssetLoading', false);
+}
+
 async function hydrateAsyncAssets() {
+    const hydrationToken = ++asyncAssetHydrationToken;
     const images = [...elements.slideStage.querySelectorAll('img[src=""]')];
+    if (images.length === 0) {
+        setTransitionSpinnerState('asyncAssetLoading', false);
+        return;
+    }
+    setTransitionSpinnerState('asyncAssetLoading', true);
     for (const image of images) {
+        if (hydrationToken !== asyncAssetHydrationToken) {
+            return;
+        }
         const original = image.getAttribute('data-original-src');
         if (!original) {
             continue;
         }
-        image.src = await state.deck.assetLoader.resolvePlayableUrl(original);
+        try {
+            image.src = await state.deck.assetLoader.resolvePlayableUrl(original);
+        } catch (error) {
+            console.warn('Bild konnte nicht geladen werden.', error);
+        }
     }
+    if (hydrationToken !== asyncAssetHydrationToken) {
+        return;
+    }
+    setTransitionSpinnerState('asyncAssetLoading', false);
     centerSlideStageHorizontally();
 }
 

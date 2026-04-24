@@ -388,14 +388,16 @@ input[type="url"] {
     position: fixed;
     top: 50%;
     left: 50%;
-    width: 74px;
-    height: 74px;
+    width: 96px;
+    height: 96px;
     transform: translate(-50%, -50%);
     display: grid;
     place-items: center;
+    gap: 6px;
     border-radius: 999px;
-    background: rgba(19, 22, 26, 0.55);
-    backdrop-filter: blur(2px);
+    background: rgba(19, 22, 26, 0.72);
+    backdrop-filter: blur(3px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
     z-index: 999;
     opacity: 0;
     visibility: hidden;
@@ -409,12 +411,18 @@ input[type="url"] {
 }
 
 .slide-transition-spinner__ring {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border-radius: 999px;
     border: 4px solid rgba(108, 192, 255, 0.35);
     border-top-color: rgba(108, 192, 255, 0.95);
     animation: slide-transition-spin 700ms linear infinite;
+}
+
+.slide-transition-spinner__label {
+    font-size: 12px;
+    color: #dbeafe;
+    letter-spacing: 0.02em;
 }
 
 @keyframes slide-transition-spin {
