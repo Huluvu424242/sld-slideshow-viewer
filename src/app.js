@@ -1122,6 +1122,7 @@ async function pausePresentation() {
 
     if (pausedNonAudioRemainingSeconds !== null) {
         elements.audioStatus.textContent = 'Pausiert';
+        await audioController.pause();
         return;
     }
 
@@ -1154,6 +1155,7 @@ async function resumePresentation() {
                 await handleSlidePlaybackCompleted();
             }, remainingSeconds * 1000);
         }
+        await audioController.resume();
         const currentSlide = state.deck?.slides[state.currentIndex];
         updateSlideAudioStatus(currentSlide);
         return;
