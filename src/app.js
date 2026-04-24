@@ -58,6 +58,7 @@ let showtimeCountdownInterval = null;
 let slideChangeCueAudioContext = null;
 let nonAudioPlaybackRemainingSeconds = null;
 let pausedNonAudioRemainingSeconds = null;
+let pausedNonAudioTotalSeconds = null;
 let slideChangeCueIndicatorToken = 0;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
@@ -138,6 +139,8 @@ function cleanupApplication() {
     clearSingleTouchActionTimer();
     clearSingleClickActionTimer();
     nonAudioPlaybackRemainingSeconds = null;
+    pausedNonAudioRemainingSeconds = null;
+    pausedNonAudioTotalSeconds = null;
 }
 
 function bindEvents() {
@@ -668,6 +671,8 @@ function startShowtimeCountdown(slide, options = {}) {
     clearShowtimeCountdown();
     const overrideSeconds = Number(options.seconds);
     const hasOverride = Number.isFinite(overrideSeconds) && overrideSeconds > 0;
+    const overrideTotalSeconds = Number(options.totalSeconds);
+    const hasOverrideTotalSeconds = Number.isFinite(overrideTotalSeconds) && overrideTotalSeconds > 0;
 
     if (!slide && !hasOverride) {
         renderShowtimeDash();
@@ -675,7 +680,9 @@ function startShowtimeCountdown(slide, options = {}) {
     }
 
     nonAudioPlaybackRemainingSeconds = hasOverride ? overrideSeconds : getSlideShowtimeSeconds(slide);
-    showtimeCountdownTotalSeconds = nonAudioPlaybackRemainingSeconds;
+    showtimeCountdownTotalSeconds = hasOverrideTotalSeconds
+        ? Math.max(nonAudioPlaybackRemainingSeconds, overrideTotalSeconds)
+        : nonAudioPlaybackRemainingSeconds;
     renderShowtimeCountdown(nonAudioPlaybackRemainingSeconds);
     showtimeCountdownInterval = window.setInterval(() => {
         if (nonAudioPlaybackRemainingSeconds === null) {
@@ -801,6 +808,7 @@ async function setDeck(deck) {
     await audioController.stop();
     hasPresentationStarted = false;
     pausedNonAudioRemainingSeconds = null;
+    pausedNonAudioTotalSeconds = null;
     hideTranscriptPanel();
     refreshUi();
     renderSlideList();
@@ -824,6 +832,7 @@ async function goToSlide(index, options = {}) {
         clearSlideAdvanceTimer();
         clearShowtimeCountdown();
         pausedNonAudioRemainingSeconds = null;
+        pausedNonAudioTotalSeconds = null;
         await audioController.stop();
         if (options.autoplay) {
             const bellDurationSeconds = playSlideChangeCueWithIndicator();
@@ -1033,6 +1042,7 @@ async function playCurrentSlide(options = {}) {
     await withUiErrorHandling(async () => {
         hasPresentationStarted = true;
         pausedNonAudioRemainingSeconds = null;
+        pausedNonAudioTotalSeconds = null;
         if (!slide.audio) {
             setPlayButtonActive(true);
             startShowtimeCountdown(slide);
@@ -1091,10 +1101,19 @@ async function pausePresentation() {
 
     if (nonAudioPlaybackRemainingSeconds !== null) {
         pausedNonAudioRemainingSeconds = nonAudioPlaybackRemainingSeconds;
+        pausedNonAudioTotalSeconds = showtimeCountdownTotalSeconds ?? nonAudioPlaybackRemainingSeconds;
     }
     clearSlideAdvanceTimer();
-    clearShowtimeCountdown();
-    nonAudioPlaybackRemainingSeconds = null;
+    if (pausedNonAudioRemainingSeconds !== null) {
+        if (showtimeCountdownInterval) {
+            window.clearInterval(showtimeCountdownInterval);
+            showtimeCountdownInterval = null;
+        }
+        nonAudioPlaybackRemainingSeconds = null;
+    } else {
+        clearShowtimeCountdown();
+        nonAudioPlaybackRemainingSeconds = null;
+    }
     setPlayButtonActive(false);
 
     if (elements.audioStatus.textContent === 'Pausiert') {
@@ -1117,9 +1136,14 @@ async function resumePresentation() {
 
     if (pausedNonAudioRemainingSeconds !== null) {
         const remainingSeconds = pausedNonAudioRemainingSeconds;
+        const totalSeconds = pausedNonAudioTotalSeconds ?? remainingSeconds;
         pausedNonAudioRemainingSeconds = null;
+        pausedNonAudioTotalSeconds = null;
         setPlayButtonActive(true);
-        startShowtimeCountdown(null, {seconds: remainingSeconds});
+        startShowtimeCountdown(null, {
+            seconds: remainingSeconds,
+            totalSeconds,
+        });
         if (state.autoAdvance) {
             clearSlideAdvanceTimer();
             slideAdvanceTimer = window.setTimeout(async () => {
@@ -1145,6 +1169,7 @@ async function stopPresentation() {
     clearShowtimeCountdown();
     nonAudioPlaybackRemainingSeconds = null;
     pausedNonAudioRemainingSeconds = null;
+    pausedNonAudioTotalSeconds = null;
     hasPresentationStarted = false;
     setPlayButtonActive(false);
     await audioController.stop();
