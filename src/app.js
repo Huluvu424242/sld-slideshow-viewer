@@ -1084,6 +1084,9 @@ function isPresentationRunning() {
     if (nonAudioPlaybackRemainingSeconds !== null) {
         return true;
     }
+    if (audioController.hasRunningFallbackAdvance()) {
+        return true;
+    }
     return elements.audioStatus.textContent.startsWith('Spielt');
 }
 
@@ -1096,6 +1099,7 @@ async function pausePresentation() {
     }
 
     if (!isPresentationRunning()) {
+        await audioController.pause();
         return;
     }
 
@@ -1122,6 +1126,7 @@ async function pausePresentation() {
 
     if (pausedNonAudioRemainingSeconds !== null) {
         elements.audioStatus.textContent = 'Pausiert';
+        await audioController.pause();
         return;
     }
 
@@ -1144,7 +1149,8 @@ async function resumePresentation() {
             seconds: remainingSeconds,
             totalSeconds,
         });
-        if (state.autoAdvance) {
+        const hasPausedFallbackAdvance = audioController.hasPausedFallbackAdvance();
+        if (state.autoAdvance && !hasPausedFallbackAdvance) {
             clearSlideAdvanceTimer();
             slideAdvanceTimer = window.setTimeout(async () => {
                 slideAdvanceTimer = null;
@@ -1154,6 +1160,7 @@ async function resumePresentation() {
                 await handleSlidePlaybackCompleted();
             }, remainingSeconds * 1000);
         }
+        await audioController.resume();
         const currentSlide = state.deck?.slides[state.currentIndex];
         updateSlideAudioStatus(currentSlide);
         return;
