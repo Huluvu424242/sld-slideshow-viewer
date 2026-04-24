@@ -812,8 +812,11 @@ async function goToSlide(index, options = {}) {
         await audioController.stop();
         if (options.autoplay) {
             const bellDurationSeconds = playSlideChangeCueWithIndicator();
-            await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
-            if (transitionAbortRequested) {
+            const transitionDelayCompleted = await delayWithAbort(
+                (bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000,
+                () => transitionAbortRequested,
+            );
+            if (!transitionDelayCompleted) {
                 return;
             }
         }
@@ -922,6 +925,23 @@ function delay(durationMs) {
     return new Promise((resolve) => {
         window.setTimeout(resolve, durationMs);
     });
+}
+
+async function delayWithAbort(durationMs, shouldAbort, checkIntervalMs = 40) {
+    const safeDurationMs = Math.max(0, Number(durationMs) || 0);
+    if (safeDurationMs === 0) {
+        return !shouldAbort();
+    }
+    const startTime = performance.now();
+    while (performance.now() - startTime < safeDurationMs) {
+        if (shouldAbort()) {
+            return false;
+        }
+        const elapsedMs = performance.now() - startTime;
+        const remainingMs = Math.max(0, safeDurationMs - elapsedMs);
+        await delay(Math.min(checkIntervalMs, remainingMs));
+    }
+    return !shouldAbort();
 }
 
 async function renderCurrentSlide() {
