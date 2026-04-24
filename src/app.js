@@ -76,6 +76,8 @@ let asyncAssetHydrationToken = 0;
 const spinnerState = {
     transitionLock: false,
     asyncAssetLoading: false,
+    deckLoading: false,
+    slideRendering: false,
 };
 
 await initApp();
@@ -151,7 +153,7 @@ function cleanupApplication() {
 function bindEvents() {
     elements.pickDirectoryBtn.addEventListener('click', async () => {
         await withUiErrorHandling(async () => {
-            const deck = await loadDeckFromDirectory();
+            const deck = await withSpinner('deckLoading', async () => loadDeckFromDirectory(), {allowPaint: true});
             await setDeck(deck);
         });
     });
@@ -162,7 +164,7 @@ function bindEvents() {
             return;
         }
         await withUiErrorHandling(async () => {
-            const deck = await loadDeckFromZip(file);
+            const deck = await withSpinner('deckLoading', async () => loadDeckFromZip(file), {allowPaint: true});
             await setDeck(deck);
             event.target.value = '';
         });
@@ -174,7 +176,7 @@ function bindEvents() {
             if (!url) {
                 throw new Error('Bitte eine Remote-URL eingeben.');
             }
-            const deck = await loadDeckFromRemote(url);
+            const deck = await withSpinner('deckLoading', async () => loadDeckFromRemote(url), {allowPaint: true});
             await setDeck(deck);
         });
     });
@@ -509,6 +511,24 @@ function setTransitionSpinnerState(reason, visible) {
     elements.slideTransitionSpinner?.classList.toggle('is-active', shouldShow);
 }
 
+function nextAnimationFrame() {
+    return new Promise((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+    });
+}
+
+async function withSpinner(reason, task, {allowPaint = false} = {}) {
+    setTransitionSpinnerState(reason, true);
+    if (allowPaint) {
+        await nextAnimationFrame();
+    }
+    try {
+        return await task();
+    } finally {
+        setTransitionSpinnerState(reason, false);
+    }
+}
+
 function setSlideListNavigationDisabled(disabled) {
     const buttons = elements.slideList.querySelectorAll('button');
     buttons.forEach((button) => {
@@ -804,7 +824,7 @@ async function initializeFromQueryParameters() {
     elements.remoteUrlInput.value = remoteUrl;
 
     await withUiErrorHandling(async () => {
-        const deck = await loadDeckFromRemote(remoteUrl);
+        const deck = await withSpinner('deckLoading', async () => loadDeckFromRemote(remoteUrl), {allowPaint: true});
         await setDeck(deck);
     });
 }
@@ -1003,13 +1023,15 @@ async function renderCurrentSlide() {
         return resolved;
     };
 
-    const html = renderSlideContent(slide, assetResolver);
-    elements.slideContent.innerHTML = `
+    await withSpinner('slideRendering', async () => {
+        const html = renderSlideContent(slide, assetResolver);
+        elements.slideContent.innerHTML = `
     <article class="slide-card" data-slide-id="${escapeHtml(slide.id || '')}">
       ${html}
     </article>
   `;
-    centerSlideStageHorizontally();
+        centerSlideStageHorizontally();
+    }, {allowPaint: true});
 
     void hydrateAsyncAssets();
 
