@@ -10,6 +10,9 @@ export class AudioController {
         this.currentSlideKey = null;
         this.playbackSession = 0;
         this.unavailableAudioFallbackTimer = null;
+        this.unavailableAudioFallbackRemainingMs = null;
+        this.unavailableAudioFallbackDeadline = null;
+        this.unavailableAudioFallbackSession = null;
     }
 
     isSpeechSupported() {
@@ -72,6 +75,11 @@ export class AudioController {
     }
 
     async pause() {
+        if (this.pauseFallbackAdvance()) {
+            this.updateStatus('Pausiert');
+            return;
+        }
+
         if (this.audio && !this.audio.paused) {
             this.audio.pause();
             this.updateStatus('Pausiert');
@@ -85,6 +93,11 @@ export class AudioController {
     }
 
     async resume() {
+        if (this.resumeFallbackAdvance()) {
+            this.updateStatus('Spielt');
+            return;
+        }
+
         if (this.audio && this.audio.paused) {
             await this.audio.play();
             this.updateStatus('Spielt');
@@ -206,21 +219,70 @@ export class AudioController {
         this.clearUnavailableAudioFallbackTimer();
         const fallbackSeconds = getUnavailableAudioShowtimeSeconds(slide);
         this.onFallbackTimerStart?.(fallbackSeconds);
+        this.unavailableAudioFallbackRemainingMs = fallbackSeconds * 1000;
+        this.unavailableAudioFallbackSession = playbackSession;
+        this.unavailableAudioFallbackDeadline = performance.now() + this.unavailableAudioFallbackRemainingMs;
         this.unavailableAudioFallbackTimer = window.setTimeout(() => {
             this.unavailableAudioFallbackTimer = null;
+            this.unavailableAudioFallbackRemainingMs = null;
+            this.unavailableAudioFallbackDeadline = null;
+            this.unavailableAudioFallbackSession = null;
             if (!this.isCurrentPlaybackSession(playbackSession)) {
                 return;
             }
             this.onEnded?.();
-        }, fallbackSeconds * 1000);
+        }, this.unavailableAudioFallbackRemainingMs);
     }
 
     clearUnavailableAudioFallbackTimer() {
         if (!this.unavailableAudioFallbackTimer) {
+            this.unavailableAudioFallbackRemainingMs = null;
+            this.unavailableAudioFallbackDeadline = null;
+            this.unavailableAudioFallbackSession = null;
             return;
         }
         window.clearTimeout(this.unavailableAudioFallbackTimer);
         this.unavailableAudioFallbackTimer = null;
+        this.unavailableAudioFallbackRemainingMs = null;
+        this.unavailableAudioFallbackDeadline = null;
+        this.unavailableAudioFallbackSession = null;
+    }
+
+    pauseFallbackAdvance() {
+        if (!this.unavailableAudioFallbackTimer || this.unavailableAudioFallbackDeadline === null) {
+            return false;
+        }
+        const remainingMs = Math.max(0, this.unavailableAudioFallbackDeadline - performance.now());
+        window.clearTimeout(this.unavailableAudioFallbackTimer);
+        this.unavailableAudioFallbackTimer = null;
+        this.unavailableAudioFallbackRemainingMs = remainingMs;
+        this.unavailableAudioFallbackDeadline = null;
+        return true;
+    }
+
+    resumeFallbackAdvance() {
+        if (
+            this.unavailableAudioFallbackTimer ||
+            this.unavailableAudioFallbackRemainingMs === null ||
+            this.unavailableAudioFallbackSession === null
+        ) {
+            return false;
+        }
+
+        const remainingMs = this.unavailableAudioFallbackRemainingMs;
+        const playbackSession = this.unavailableAudioFallbackSession;
+        this.unavailableAudioFallbackDeadline = performance.now() + remainingMs;
+        this.unavailableAudioFallbackTimer = window.setTimeout(() => {
+            this.unavailableAudioFallbackTimer = null;
+            this.unavailableAudioFallbackRemainingMs = null;
+            this.unavailableAudioFallbackDeadline = null;
+            this.unavailableAudioFallbackSession = null;
+            if (!this.isCurrentPlaybackSession(playbackSession)) {
+                return;
+            }
+            this.onEnded?.();
+        }, remainingMs);
+        return true;
     }
 
     updateStatus(status) {
