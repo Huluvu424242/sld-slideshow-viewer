@@ -384,6 +384,45 @@ input[type="url"] {
     width: 100%;
 }
 
+.slide-transition-spinner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 74px;
+    height: 74px;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(19, 22, 26, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms ease-out, visibility 120ms ease-out;
+    pointer-events: none;
+}
+
+.slide-transition-spinner.is-active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.slide-transition-spinner__ring {
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    border: 4px solid rgba(108, 192, 255, 0.35);
+    border-top-color: rgba(108, 192, 255, 0.95);
+    animation: slide-transition-spin 700ms linear infinite;
+}
+
+@keyframes slide-transition-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .slide-card,
 .placeholder {
     width: min(1200px, 100%);
