@@ -464,6 +464,7 @@ function setPlayButtonActive(active) {
 function beginSlideTransitionLock() {
     transitionAbortRequested = false;
     isSlideTransitionInProgress = true;
+    setTransitionSpinnerVisible(true);
     refreshUi();
     setSlideListNavigationDisabled(true);
     clearTransitionUnlockTimer();
@@ -478,6 +479,7 @@ function beginSlideTransitionLock() {
 
 function endSlideTransitionLock() {
     isSlideTransitionInProgress = false;
+    setTransitionSpinnerVisible(false);
     clearTransitionUnlockTimer();
     refreshUi();
     setSlideListNavigationDisabled(false);
@@ -488,6 +490,10 @@ function clearTransitionUnlockTimer() {
         window.clearTimeout(transitionUnlockTimer);
         transitionUnlockTimer = null;
     }
+}
+
+function setTransitionSpinnerVisible(visible) {
+    elements.slideTransitionSpinner?.classList.toggle('is-active', Boolean(visible));
 }
 
 function setSlideListNavigationDisabled(disabled) {
