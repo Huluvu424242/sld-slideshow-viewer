@@ -43,7 +43,7 @@ import {
     syncAutoSlideChangeForCurrentSlide as syncAutoSlideChangeForCurrentSlideInPlayer,
 } from './player.js';
 
-const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.7;
+const SLIDE_CHANGE_BELL_PAUSE_SECONDS = 0.2;
 const DEFAULT_SLIDE_SHOWTIME_SECONDS = 10;
 const TRANSITION_UNLOCK_TIMEOUT_MS = 10_000;
 const DOUBLE_TAP_INTERVAL_MS = 320;
@@ -61,6 +61,7 @@ let pausedNonAudioRemainingSeconds = null;
 let slideChangeCueIndicatorToken = 0;
 let isSlideTransitionInProgress = false;
 let transitionUnlockTimer = null;
+let transitionAbortRequested = false;
 let hasPresentationStarted = false;
 let singleTouchActionTimer = null;
 let singleClickActionTimer = null;
@@ -214,6 +215,10 @@ function bindEvents() {
 
     document.addEventListener('keydown', async (event) => {
         if (isSlideTransitionInProgress) {
+            if (event.key === ' ' || event.key === 'Escape') {
+                event.preventDefault();
+                requestTransitionAbort('Folienwechsel wird gestoppt …');
+            }
             return;
         }
         if (event.target instanceof HTMLInputElement) {
@@ -291,7 +296,12 @@ function handleTouchMove(event) {
 }
 
 async function handleTouchEnd(event) {
-    if (!swipeState.tracking || !state.deck || isSlideTransitionInProgress) {
+    if (!swipeState.tracking || !state.deck) {
+        resetSwipeState(swipeState);
+        return;
+    }
+    if (isSlideTransitionInProgress) {
+        requestTransitionAbort('Folienwechsel wird gestoppt …');
         resetSwipeState(swipeState);
         return;
     }
@@ -344,7 +354,11 @@ function isTouchGeneratedClickEvent(event) {
 }
 
 async function handleStageClick(event) {
-    if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
+    if (!state.deck || state.currentIndex < 0) {
+        return;
+    }
+    if (isSlideTransitionInProgress) {
+        requestTransitionAbort('Folienwechsel wird gestoppt …');
         return;
     }
     if (isTouchGeneratedClickEvent(event)) {
@@ -365,7 +379,11 @@ async function handleStageClick(event) {
 }
 
 function handleStageDoubleClick(event) {
-    if (!state.deck || state.currentIndex < 0 || isSlideTransitionInProgress) {
+    if (!state.deck || state.currentIndex < 0) {
+        return;
+    }
+    if (isSlideTransitionInProgress) {
+        requestTransitionAbort('Folienwechsel wird gestoppt …');
         return;
     }
     if (isInteractiveControlTarget(event.target)) {
@@ -435,6 +453,7 @@ function setPlayButtonActive(active) {
 }
 
 function beginSlideTransitionLock() {
+    transitionAbortRequested = false;
     isSlideTransitionInProgress = true;
     refreshUi();
     setSlideListNavigationDisabled(true);
@@ -467,6 +486,15 @@ function setSlideListNavigationDisabled(disabled) {
     buttons.forEach((button) => {
         button.disabled = disabled;
     });
+}
+
+function requestTransitionAbort(message = 'Folienwechsel abgebrochen.') {
+    if (!isSlideTransitionInProgress) {
+        return false;
+    }
+    transitionAbortRequested = true;
+    elements.audioStatus.textContent = message;
+    return true;
 }
 
 function getSlideShowtimeSeconds(slide) {
@@ -785,6 +813,9 @@ async function goToSlide(index, options = {}) {
         if (options.autoplay) {
             const bellDurationSeconds = playSlideChangeCueWithIndicator();
             await delay((bellDurationSeconds + SLIDE_CHANGE_BELL_PAUSE_SECONDS) * 1000);
+            if (transitionAbortRequested) {
+                return;
+            }
         }
         state.currentIndex = index;
         hideTranscriptPanel();
@@ -1011,6 +1042,9 @@ function isPresentationRunning() {
 }
 
 async function pausePresentation() {
+    if (isSlideTransitionInProgress) {
+        requestTransitionAbort('Folienwechsel wird gestoppt …');
+    }
     if (!hasPresentationStarted) {
         return;
     }
@@ -1069,6 +1103,7 @@ async function resumePresentation() {
 }
 
 async function stopPresentation() {
+    requestTransitionAbort('Folienwechsel gestoppt.');
     clearErrorPauseByInteraction();
     clearSlideAdvanceTimer();
     clearShowtimeCountdown();
@@ -1141,19 +1176,20 @@ function refreshUi() {
     elements.showtimeProgressTrack.classList.toggle('hidden', slideCount < 1);
     elements.slideListPanel.classList.toggle('hidden', slideCount < 1);
 
-    const disabled = !state.deck || isSlideTransitionInProgress;
+    const noDeckLoaded = !state.deck;
+    const navigationDisabled = noDeckLoaded || isSlideTransitionInProgress;
     for (const button of [
         elements.firstBtn,
         elements.prevBtn,
         elements.playBtn,
-        elements.pauseBtn,
-        elements.stopBtn,
         elements.nextBtn,
         elements.lastBtn,
     ]) {
-        button.disabled = disabled;
+        button.disabled = navigationDisabled;
     }
-    elements.transcriptToggleBtn.disabled = disabled || !hasSlideAudioSource(currentSlide);
+    elements.pauseBtn.disabled = noDeckLoaded;
+    elements.stopBtn.disabled = noDeckLoaded;
+    elements.transcriptToggleBtn.disabled = navigationDisabled || !hasSlideAudioSource(currentSlide);
 }
 
 function hasSlideAudioSource(slide) {
