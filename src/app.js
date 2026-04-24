@@ -425,8 +425,17 @@ function scrollToSlideStageTop() {
 }
 
 function centerSlideStageHorizontally() {
-    const horizontalOverflow = elements.slideStage.scrollWidth - elements.slideStage.clientWidth;
-    elements.slideStage.scrollLeft = Math.max(0, horizontalOverflow / 2);
+    const stage = elements.slideStage;
+    const slideCard = stage.querySelector('.slide-card, .placeholder');
+
+    if (!slideCard) {
+        stage.scrollLeft = 0;
+        return;
+    }
+
+    const targetScrollLeft = slideCard.offsetLeft - ((stage.clientWidth - slideCard.clientWidth) / 2);
+    const maxScrollLeft = Math.max(0, stage.scrollWidth - stage.clientWidth);
+    stage.scrollLeft = Math.min(Math.max(0, targetScrollLeft), maxScrollLeft);
 }
 
 function clearSlideAdvanceTimer() {
@@ -1003,6 +1012,7 @@ async function hydrateAsyncAssets() {
         }
         image.src = await state.deck.assetLoader.resolvePlayableUrl(original);
     }
+    centerSlideStageHorizontally();
 }
 
 async function playCurrentSlide(options = {}) {
