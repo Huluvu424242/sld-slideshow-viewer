@@ -129,6 +129,18 @@ export class AudioController {
         this.updateStatus('Gestoppt');
     }
 
+    hasRunningFallbackAdvance() {
+        return this.unavailableAudioFallbackTimer !== null;
+    }
+
+    hasPausedFallbackAdvance() {
+        return (
+            this.unavailableAudioFallbackTimer === null &&
+            this.unavailableAudioFallbackRemainingMs !== null &&
+            this.unavailableAudioFallbackSession !== null
+        );
+    }
+
     async playAudioElement(url, playbackSession, slide = {}) {
         const audio = new Audio(url);
         this.audio = audio;
