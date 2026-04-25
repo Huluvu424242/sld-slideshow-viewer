@@ -15,13 +15,13 @@ export function renderSlideContent(slide, assetResolver) {
     const resolved = assetResolver(safeHref);
     const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
     const alt = escapeHtml(text || '');
-    const assetPathAttr = ` data-sld-asset="${escapeHtml(safeHref)}"`;
 
     if (resolved instanceof Promise) {
+      const assetPathAttr = ` data-sld-asset="${escapeHtml(safeHref)}"`;
       return `<img src="" alt="${alt}"${titleAttr}${assetPathAttr}>`;
     }
 
-    return `<img src="${escapeHtml(resolved)}" alt="${alt}"${titleAttr}${assetPathAttr}>`;
+    return `<img src="${escapeHtml(resolved)}" alt="${alt}"${titleAttr}>`;
   };
 
   const rendered = marked.parse(raw, { renderer });
