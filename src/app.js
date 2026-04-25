@@ -1016,11 +1016,7 @@ async function renderCurrentSlide() {
     }
 
     const assetResolver = (assetPath) => {
-        const resolved = state.deck.assetLoader.resolveAssetPath(assetPath);
-        if (resolved instanceof Promise) {
-            return '';
-        }
-        return resolved;
+        return state.deck.assetLoader.resolveAssetPath(assetPath);
     };
 
     await withSpinner('slideRendering', async () => {
@@ -1058,7 +1054,7 @@ function abortPendingAssetHydration() {
 
 async function hydrateAsyncAssets() {
     const hydrationToken = ++asyncAssetHydrationToken;
-    const images = [...elements.slideStage.querySelectorAll('img[src=""]')];
+    const images = [...elements.slideStage.querySelectorAll('img[data-sld-asset]')];
     if (images.length === 0) {
         setTransitionSpinnerState('asyncAssetLoading', false);
         return;
@@ -1068,12 +1064,13 @@ async function hydrateAsyncAssets() {
         if (hydrationToken !== asyncAssetHydrationToken) {
             return;
         }
-        const original = image.getAttribute('data-original-src');
-        if (!original) {
+        const assetPath = image.getAttribute('data-sld-asset');
+        if (!assetPath) {
             continue;
         }
         try {
-            image.src = await state.deck.assetLoader.resolvePlayableUrl(original);
+            image.src = await state.deck.assetLoader.resolveAssetPath(assetPath);
+            image.removeAttribute('data-sld-asset');
         } catch (error) {
             console.warn('Bild konnte nicht geladen werden.', error);
         }

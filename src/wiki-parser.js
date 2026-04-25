@@ -11,15 +11,17 @@ export function renderSlideContent(slide, assetResolver) {
 
   const renderer = new marked.Renderer();
   renderer.image = ({ href, title, text }) => {
-    const resolved = assetResolver(href);
+    const safeHref = typeof href === 'string' ? href : '';
+    const resolved = assetResolver(safeHref);
     const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
     const alt = escapeHtml(text || '');
+    const assetPathAttr = ` data-sld-asset="${escapeHtml(safeHref)}"`;
 
     if (resolved instanceof Promise) {
-      return `<img src="" data-original-src="${escapeHtml(href)}" alt="${alt}"${titleAttr}>`;
+      return `<img src="" alt="${alt}"${titleAttr}${assetPathAttr}>`;
     }
 
-    return `<img src="${resolved}" alt="${alt}"${titleAttr}>`;
+    return `<img src="${escapeHtml(resolved)}" alt="${alt}"${titleAttr}${assetPathAttr}>`;
   };
 
   const rendered = marked.parse(raw, { renderer });
