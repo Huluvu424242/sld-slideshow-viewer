@@ -217,17 +217,41 @@ function normalize(path) {
 }
 
 async function getObjectUrl(zip, relativePath, objectUrlCache) {
-  const normalized = normalize(relativePath);
-  if (objectUrlCache.has(normalized)) {
-    return objectUrlCache.get(normalized);
-  }
+    const normalized = normalize(relativePath);
 
-  const entry = zip.file(normalized);
-  if (!entry) {
-    throw new Error(`Datei im SLD/ZIP nicht gefunden: ${relativePath}`);
-  }
-  const blob = await entry.async('blob');
-  const objectUrl = URL.createObjectURL(blob);
-  objectUrlCache.set(normalized, objectUrl);
-  return objectUrl;
+    if (objectUrlCache.has(normalized)) {
+        return objectUrlCache.get(normalized);
+    }
+
+    const entry = zip.file(normalized);
+    if (!entry) {
+        throw new Error(`Datei im SLD/ZIP nicht gefunden: ${relativePath}`);
+    }
+
+    const rawBlob = await entry.async('blob');
+    const blob = rawBlob.type
+        ? rawBlob
+        : new Blob([rawBlob], { type: inferMimeType(normalized) });
+
+    const objectUrl = URL.createObjectURL(blob);
+    objectUrlCache.set(normalized, objectUrl);
+    return objectUrl;
+}
+
+function inferMimeType(path) {
+    const normalized = path.toLowerCase();
+
+    if (normalized.endsWith('.svg')) return 'image/svg+xml';
+    if (normalized.endsWith('.png')) return 'image/png';
+    if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg';
+    if (normalized.endsWith('.webp')) return 'image/webp';
+    if (normalized.endsWith('.gif')) return 'image/gif';
+    if (normalized.endsWith('.mp3')) return 'audio/mpeg';
+    if (normalized.endsWith('.wav')) return 'audio/wav';
+    if (normalized.endsWith('.ogg')) return 'audio/ogg';
+    if (normalized.endsWith('.ssml')) return 'application/ssml+xml';
+    if (normalized.endsWith('.txt')) return 'text/plain';
+    if (normalized.endsWith('.md')) return 'text/markdown';
+
+    return 'application/octet-stream';
 }
